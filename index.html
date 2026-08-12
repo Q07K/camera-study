@@ -90,6 +90,39 @@
     font-size: 16px;
   }
 
+  /* ---------- 난이도 계층 ---------- */
+  .header-top {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+  }
+  .level-switch {
+    display: inline-flex; border: 1px solid var(--line); border-radius: 4px;
+    overflow: hidden; background: var(--surface);
+  }
+  .level-switch button {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em;
+    padding: 7px 14px; border: none; background: transparent; color: var(--muted);
+    cursor: pointer; transition: background .15s, color .15s;
+  }
+  .level-switch button + button { border-left: 1px solid var(--line); }
+  .level-switch button:hover { color: var(--text); }
+  .level-switch button[aria-pressed="true"] { background: var(--beam); color: #0A0E1A; font-weight: 700; }
+  .level-switch button:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+
+  .simple-card {
+    margin: 20px 0 0; padding: 18px 20px;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 6px; max-width: 68ch;
+  }
+  .simple-card p { margin: 0 0 10px; font-size: 15.5px; color: var(--muted); }
+  .simple-card p:last-child { margin-bottom: 0; }
+  .simple-card b { color: var(--text); font-weight: 700; }
+  .simple-eyebrow {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--beam) !important; margin-bottom: 8px !important;
+  }
+  body[data-level="easy"] [data-level="detail"] { display: none !important; }
+
   /* ---------- panels ---------- */
   .panel {
     background: var(--surface);
@@ -223,6 +256,10 @@
   }
 
   /* ---------- 3D 광선다발 ---------- */
+  .cone-intro {
+    margin: 0 0 14px; font-size: 14.5px; color: var(--muted); max-width: 70ch;
+  }
+  .cone-intro b { color: var(--text); font-weight: 700; }
   .cone-controls {
     display: flex; flex-wrap: wrap; gap: 10px;
     align-items: center; justify-content: space-between; margin-bottom: 12px;
@@ -318,12 +355,33 @@
 <div class="wrap">
 
   <header>
-    <p class="eyebrow">Aperture Lab · 조리개 · 피사계 심도</p>
+    <div class="header-top">
+      <p class="eyebrow">Aperture Lab · 조리개 · 피사계 심도</p>
+      <div class="level-switch" role="group" aria-label="설명 깊이">
+        <button type="button" data-set-level="easy" aria-pressed="true">쉽게</button>
+        <button type="button" data-set-level="detail" aria-pressed="false">자세히</button>
+      </div>
+    </div>
     <h1>조리개를 조이면 왜 <em>전부 선명</em>해지고,<br>열면 왜 <em>뒤가 녹아내릴까</em></h1>
-    <p class="lede">
-      렌즈는 언제나 <b>한 거리</b>에만 정확히 초점을 맞춥니다. 그 앞뒤의 물체는 센서 위에서 점이 아니라
-      <b>작은 원</b>으로 번져 맺히고, 이 원이 충분히 작으면 우리 눈은 그것을 &ldquo;선명하다&rdquo;고 판단합니다.
-      조리개는 이 원의 크기를 직접 조절하는 밸브입니다. 아래에서 직접 돌려 보세요.
+
+    <div class="simple-card">
+      <p class="simple-eyebrow">먼저 이것만</p>
+      <p>
+        렌즈를 지난 빛은 <b>뾰족한 원뿔</b> 모양으로 모입니다. 원뿔의 뾰족한 끝이 센서에 딱 닿으면
+        그 자리는 <b>점</b>으로 찍혀 선명하고, 끝에 닿기 전이거나 이미 지나쳤으면
+        <b>동그란 얼룩</b>으로 찍혀 흐립니다.
+      </p>
+      <p>
+        조리개는 이 원뿔을 <b>얼마나 뾰족하게</b> 만들지 정하는 손잡이입니다.
+        조이면 바늘처럼 가늘어져 앞뒤가 다 선명해지고(<b>팬 포커스</b>),
+        열면 뭉툭해져 초점을 벗어난 곳이 크게 뭉개집니다(<b>아웃 포커싱</b>).
+      </p>
+    </div>
+
+    <p class="lede" data-level="detail">
+      조금 더 정확히 말하면, 이 &ldquo;얼룩&rdquo;을 <b>착란원</b>이라 부릅니다. 렌즈는 언제나 <b>한 거리</b>에만
+      정확히 초점을 맞추고, 그 앞뒤의 물체는 센서 위에서 점이 아니라 작은 원으로 번져 맺힙니다.
+      이 원이 충분히 작으면(풀프레임 기준 약 0.03mm) 우리 눈은 그것을 선명하다고 판단합니다.
     </p>
   </header>
 
@@ -331,7 +389,7 @@
   <section class="panel">
     <div class="panel-head">
       <h2 class="panel-title">촬영 설정</h2>
-      <p class="panel-note">풀프레임 36×24mm · 허용 착란원 0.03mm 기준</p>
+      <p class="panel-note" data-level="detail">풀프레임 36×24mm · 허용 착란원 0.03mm 기준</p>
     </div>
     <div class="dock">
       <div class="iris-cell">
@@ -373,15 +431,15 @@
     <div class="panel">
       <div class="panel-head">
         <h2 class="panel-title">1 · 렌즈 안에서 벌어지는 일</h2>
-        <p class="panel-note">가로축은 로그 스케일 · 상면 차이는 과장</p>
+        <p class="panel-note" id="rayNote"></p>
       </div>
       <div class="panel-body">
         <div class="figbox">
-          <svg id="rayDiagram" class="diagram" viewBox="0 0 900 430" role="img"
+          <svg id="rayDiagram" class="diagram" viewBox="0 0 900 460" role="img"
                aria-label="세 거리의 피사체에서 나온 광선이 조리개를 지나 센서에 맺히는 단면도">
           </svg>
         </div>
-        <div class="figbox" style="margin-top:6px">
+        <div class="figbox" style="margin-top:6px" data-level="detail">
           <svg id="cocInset" class="diagram" viewBox="0 0 900 190" role="img"
                aria-label="센서 위에 맺힌 각 피사체의 착란원 크기 비교">
           </svg>
@@ -411,6 +469,10 @@
       <p class="panel-note">드래그해서 돌려 보세요 · 축 방향만 과장 (단면 크기 비는 실제 그대로)</p>
     </div>
     <div class="panel-body">
+      <p class="cone-intro">
+        점광원 <b>하나</b>에서 나온 빛이 렌즈를 지나 센서에 닿기까지를 입체로 펼친 그림입니다.
+        ① 광원 → ② 조리개 구멍 → ③ 한 점으로 모임 → ④ 센서 순서로 보세요.
+      </p>
       <div class="cone-controls">
         <div class="chips" id="traceChips"></div>
         <button class="chip" id="spinToggle" type="button" aria-pressed="true">자동 회전</button>
@@ -434,8 +496,8 @@
         </svg>
       </div>
     </div>
-    <div class="stats" id="stats"></div>
-    <div class="panel-body" style="padding-top:0">
+    <div class="stats" id="stats" data-level="detail"></div>
+    <div class="panel-body" style="padding-top:0" data-level="detail">
       <table class="readout">
         <thead>
           <tr>
@@ -529,7 +591,9 @@
         <ul>
           <li><strong>f/1.4 → f/22</strong>로 조여 보기. 착란원 지름 숫자가 어떻게 줄고, 심도 밴드가 어떻게 넓어지는지.</li>
           <li><strong>초점을 앞 잎에</strong> 맞춰 보기. 주인공이던 메뉴판 글씨가 순식간에 읽을 수 없게 됩니다.</li>
-          <li><strong>같은 f/4에서 24mm와 135mm</strong> 비교. 초점거리만 늘려도 심도는 급격히 얕아집니다.</li>
+          <li><strong>같은 f/4에서 24mm와 135mm</strong> 비교. 1번 그림에서 구멍이 커지는 만큼 센서도 뒤로 물러나
+              원뿔 각도는 그대로입니다 — F값이 같으면 밝기가 같은 이유가 이것입니다. 대신 화각이 53°에서 10°로 좁아지고,
+              같은 거리에서도 심도는 급격히 얕아집니다.</li>
           <li><strong>3D 뷰에서 초점 대상을 바꿔</strong> 보기. 수렴점이 센서 앞에 있느냐 뒤에 있느냐에 따라 단면이 뒤집힙니다.</li>
           <li><strong>조인 만큼 어두워진다</strong>는 대가. 사진 아래 셔터 속도 표시를 보세요. 팬 포커스는 흔들림·노이즈와의 거래입니다.</li>
         </ul>
@@ -537,7 +601,7 @@
     </div>
   </section>
 
-  <footer>
+  <footer data-level="detail">
     얇은 렌즈 근사 · 회절 및 렌즈 수차 미반영 · 착란원 c = (f²/N) × |S−D| / (S × (D−f))
   </footer>
 </div>
@@ -664,98 +728,174 @@
     irisCtx.stroke();
   }
 
-  /* ================= 광선 단면도 ================= */
+  /* ================= 광선 단면도 =================
+     상 쪽은 실제 상거리에 비례해 그린다 → 초점거리를 늘리면 센서가 실제로 뒤로 물러난다.
+     조리개 지름에도 같은 배율을 쓰므로, F값이 같으면 초점거리가 달라도 원뿔 각도가 같다
+     (= 왜 F값이 밝기의 기준인지). 피사체별 상거리 "차이"만 따로 확대한다. */
   var rayEl = document.getElementById("rayDiagram");
-  var LENS_X = 560, SENSOR_X = 850, AXIS_Y = 215, IMG_LEN = SENSOR_X - LENS_X;
+  var LENS_X = 380, AXIS_Y = 210, IMG_W = 420;
 
   function objX(d) {  // 로그 거리 → x 좌표
-    var t = Math.log(d / 0.5) / Math.log(60 / 0.5);
-    return 500 - 470 * Math.min(1, Math.max(0, t));
+    var t = Math.log(Math.min(60, Math.max(0.4, d)) / 0.4) / Math.log(60 / 0.4);
+    return 335 - 307 * t;
+  }
+  function tri(x, y, dir, col) {   // 화살촉 (dir: -1 위, +1 아래)
+    return '<polygon points="' + x + ',' + y + ' ' + (x - 5) + ',' + (y + dir * 10) +
+      ' ' + (x + 5) + ',' + (y + dir * 10) + '" fill="' + col + '"/>';
+  }
+  function textW(str, size) {      // 한글은 넓고 영문·숫자는 좁다
+    var w = 0;
+    for (var i = 0; i < str.length; i++) w += str.charCodeAt(i) > 0x2000 ? size : size * 0.58;
+    return w;
+  }
+  // 광선 위에 겹쳐도 읽히도록 배경을 깔아 주는 라벨
+  function tagTxt(x, y, str, col, size, anchor, weight) {
+    var w = textW(str, size), pad = 4;
+    var left = anchor === "end" ? x - w : (anchor === "middle" ? x - w / 2 : x);
+    return '<rect x="' + (left - pad) + '" y="' + (y - size - 2) + '" width="' + (w + pad * 2) +
+      '" height="' + (size + 8) + '" fill="' + C("--surface") + '" opacity="0.82" rx="3"/>' +
+      txt(x, y, str, col, size, anchor, weight);
   }
 
   function drawRays() {
     var f = state.focal, N = fNumber();
-    var apPx = Math.max(6, Math.min(150, (f / N) * 3.4));  // 개구 반경 표현
     var vF = imageDist(state.focusDist);
 
-    // 축방향 과장 계수: 가장 큰 상거리 편차가 화면의 32%가 되도록
-    var maxRel = 0;
-    SUBJECTS.forEach(function (s) {
-      maxRel = Math.max(maxRel, Math.abs(imageDist(s.d) / vF - 1));
-    });
-    var K = maxRel > 1e-6 ? Math.min(600, 0.32 / maxRel) : 1;
+    // 135mm일 때 상 쪽 폭을 다 쓰도록 배율 고정 → 초점거리를 바꾸면 센서가 눈에 띄게 움직인다
+    var vRef = 1 / (1 / 135 - 1 / (state.focusDist * 1000));
+    var s = IMG_W / vRef;
+    var sensorX = LENS_X + s * vF;
+    var apR = Math.max(1.5, (f / N) / 2 * s);          // 조리개 반지름 (같은 배율)
+    var glassR = Math.max(apR + 5, (f / 1.4) / 2 * s); // 유리는 그대로, 구멍만 닫힌다
+    var sensorHalf = 12 * s;                            // 센서 24mm의 절반
+
+    // 상거리 차이는 0.1mm 수준 → 그 "차이"만 확대한다. 기준 거리는 실제 비율 그대로.
+    var maxDv = 0;
+    SUBJECTS.forEach(function (t) { maxDv = Math.max(maxDv, Math.abs(imageDist(t.d) - vF)); });
+    var room = Math.min(115, (sensorX - LENS_X) * 0.5, (884 - sensorX) * 0.8);
+    var E = maxDv > 1e-9 ? Math.max(s, room / maxDv) : s;
+    var mag = E / s;
 
     var parts = [];
-    parts.push('<defs><marker id="rar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="' + C("--muted") + '"/></marker></defs>');
+    var muted = C("--muted"), lineC = C("--line"), beam = C("--beam"), focusC = C("--focus");
 
     // 광학 축
-    parts.push(line(20, AXIS_Y, SENSOR_X, AXIS_Y, C("--line"), 1, "4 4"));
+    parts.push(line(20, AXIS_Y, 884, AXIS_Y, lineC, 1, "4 4"));
+
+    // 상이 맺히는 위치에 따른 두 구역
+    parts.push(txt(sensorX - 10, 34, "◀ 센서 앞에서 맺힘 · 이미 퍼진 뒤", muted, 10, "end", 500));
+    var zoneR = "센서 뒤에서 맺힘 · 아직 모이는 중 ▶";
+    var zoneFits = sensorX + 10 + textW(zoneR, 10) < 884;
+    parts.push(txt(zoneFits ? sensorX + 10 : 884, zoneFits ? 34 : 50, zoneR, muted, 10,
+      zoneFits ? "start" : "end", 500));
+    parts.push(line(sensorX, 40, sensorX, AXIS_Y - sensorHalf - 26, lineC, 1, "3 3"));
+
+    // 화각 — 센서 모서리에서 렌즈 중심을 지나는 선을 그대로 연장한 것
+    var aov = 2 * Math.atan(12 / f) * 180 / Math.PI;
+    var wedgeEnd = LENS_X - 118, wedgeUpperY = AXIS_Y;
+    [-1, 1].forEach(function (d) {
+      var p = extend(sensorX, AXIS_Y + d * sensorHalf, LENS_X, AXIS_Y, wedgeEnd);
+      if (d > 0) wedgeUpperY = p.y;   // 센서 아래 모서리 → 렌즈 반대편에서는 축 위로 간다
+      parts.push(line(LENS_X, AXIS_Y, p.x, p.y, muted, 1, "5 4", 'opacity="0.55"'));
+    });
+    parts.push(tagTxt(wedgeEnd - 4, wedgeUpperY - 9, "세로 화각 " + aov.toFixed(0) + "°", muted, 11, "end", 700));
 
     // 센서
-    parts.push('<rect x="' + (SENSOR_X - 4) + '" y="' + (AXIS_Y - 105) + '" width="8" height="210" fill="' + C("--focus") + '" opacity="0.9" rx="2"/>');
-    parts.push(txt(SENSOR_X + 12, AXIS_Y - 115, "센서", C("--focus"), 12, "end", 700));
+    parts.push('<rect x="' + (sensorX - 4) + '" y="' + (AXIS_Y - sensorHalf) + '" width="8" height="' +
+      (sensorHalf * 2) + '" fill="' + focusC + '" opacity="0.9" rx="2"/>');
+    parts.push(tagTxt(sensorX, AXIS_Y + sensorHalf + 24, "센서 (24mm)", focusC, 12, "middle", 700));
+    // 렌즈~센서 거리 = 상거리
+    parts.push(line(LENS_X, AXIS_Y + sensorHalf + 46, sensorX, AXIS_Y + sensorHalf + 46, muted, 1, null,
+      'opacity="0.7"'));
+    parts.push(tagTxt((LENS_X + sensorX) / 2, AXIS_Y + sensorHalf + 50, "렌즈~센서 " + vF.toFixed(0) + "mm", muted, 10, "middle", 500));
 
-    // 렌즈 + 조리개
-    parts.push('<ellipse cx="' + LENS_X + '" cy="' + AXIS_Y + '" rx="13" ry="' + Math.max(apPx + 6, 30) + '" fill="' + C("--beam") + '" opacity="0.13"/>');
-    parts.push('<ellipse cx="' + LENS_X + '" cy="' + AXIS_Y + '" rx="13" ry="' + Math.max(apPx + 6, 30) + '" fill="none" stroke="' + C("--beam") + '" stroke-width="1.6" opacity="0.65"/>');
-    // 조리개 날개(가림막)
-    var bladeTop = AXIS_Y - apPx, bladeBot = AXIS_Y + apPx;
-    parts.push('<rect x="' + (LENS_X - 7) + '" y="' + (AXIS_Y - 150) + '" width="14" height="' + Math.max(0, bladeTop - (AXIS_Y - 150)) + '" fill="' + C("--line") + '" rx="2"/>');
-    parts.push('<rect x="' + (LENS_X - 7) + '" y="' + bladeBot + '" width="14" height="' + Math.max(0, (AXIS_Y + 150) - bladeBot) + '" fill="' + C("--line") + '" rx="2"/>');
-    parts.push(txt(LENS_X, AXIS_Y - 158, "렌즈 + 조리개", C("--muted"), 11, "middle", 500));
-    // 개구 치수선
-    parts.push(line(LENS_X + 26, bladeTop, LENS_X + 26, bladeBot, C("--muted"), 1, null, "marker-end=\"url(#rar)\""));
-    parts.push(txt(LENS_X + 32, AXIS_Y - apPx - 6, "구멍 " + (f / N).toFixed(1) + "mm", C("--muted"), 10, "start", 500));
+    // 렌즈 유리 + 조리개 날개
+    var bladeTop = AXIS_Y - apR, bladeBot = AXIS_Y + apR;
+    parts.push('<ellipse cx="' + LENS_X + '" cy="' + AXIS_Y + '" rx="13" ry="' + glassR + '" fill="' + beam + '" opacity="0.13"/>');
+    parts.push('<ellipse cx="' + LENS_X + '" cy="' + AXIS_Y + '" rx="13" ry="' + glassR + '" fill="none" stroke="' + beam + '" stroke-width="1.6" opacity="0.65"/>');
+    parts.push('<rect x="' + (LENS_X - 7) + '" y="' + (AXIS_Y - glassR) + '" width="14" height="' +
+      Math.max(0, glassR - apR) + '" fill="' + C("--blade") + '" rx="2"/>');
+    parts.push('<rect x="' + (LENS_X - 7) + '" y="' + bladeBot + '" width="14" height="' +
+      Math.max(0, glassR - apR) + '" fill="' + C("--blade") + '" rx="2"/>');
+    var lensLabelY = AXIS_Y - Math.max(glassR + 14, 60);
+    parts.push(tagTxt(LENS_X, lensLabelY - 15, "렌즈 + 조리개", muted, 11, "middle", 500));
+    parts.push(tagTxt(LENS_X, lensLabelY, "구멍(유효구경) " + (f / N).toFixed(1) + "mm", beam, 11, "middle", 700));
 
     // 피사체별 광선
     var heights = { leaf: -92, cup: 96, tree: 46, light: -40 };
-    SUBJECTS.forEach(function (s) {
-      var xo = objX(s.d), yo = AXIS_Y + heights[s.id];
-      var v = imageDist(s.d);
-      var xc = LENS_X + IMG_LEN * (1 + K * (v / vF - 1));
-      var yc = AXIS_Y - (yo - AXIS_Y) * 0.46;
-      var isFocus = Math.abs(s.d - state.focusDist) / state.focusDist < 0.02;
-      var col = isFocus ? C("--focus") : C(s.color);
-      var op = isFocus ? 1 : 0.72;
+    var hScale = sensorHalf * 0.78 / 96;
+    SUBJECTS.forEach(function (sub) {
+      var xo = objX(sub.d), yo = AXIS_Y + heights[sub.id];
+      var v = imageDist(sub.d);
+      var xc = sensorX + E * (v - vF);
+      var yc = AXIS_Y - (yo - AXIS_Y) * hScale;
+      var isFocus = Math.abs(sub.d - state.focusDist) / state.focusDist < 0.02;
+      var col = isFocus ? focusC : C(sub.color);
+      var op = isFocus ? 1 : 0.7;
 
       // 렌즈까지의 빛다발
-      parts.push('<path d="M' + xo + ' ' + yo + ' L' + LENS_X + ' ' + bladeTop + ' L' + LENS_X + ' ' + bladeBot + ' Z" fill="' + C("--beam") + '" opacity="' + (isFocus ? 0.14 : 0.07) + '"/>');
-      parts.push(line(xo, yo, LENS_X, bladeTop, C("--beam"), isFocus ? 1.5 : 1, null, 'opacity="' + (isFocus ? 0.85 : 0.4) + '"'));
-      parts.push(line(xo, yo, LENS_X, bladeBot, C("--beam"), isFocus ? 1.5 : 1, null, 'opacity="' + (isFocus ? 0.85 : 0.4) + '"'));
+      parts.push('<path d="M' + xo + ' ' + yo + ' L' + LENS_X + ' ' + bladeTop + ' L' + LENS_X + ' ' + bladeBot + ' Z" fill="' + beam + '" opacity="' + (isFocus ? 0.14 : 0.06) + '"/>');
+      parts.push(line(xo, yo, LENS_X, bladeTop, beam, isFocus ? 1.5 : 1, null, 'opacity="' + (isFocus ? 0.85 : 0.35) + '"'));
+      parts.push(line(xo, yo, LENS_X, bladeBot, beam, isFocus ? 1.5 : 1, null, 'opacity="' + (isFocus ? 0.85 : 0.35) + '"'));
 
-      // 굴절 후 — 수렴점까지, 그리고 센서까지 연장
-      var e1 = extend(LENS_X, bladeTop, xc, yc, SENSOR_X);
-      var e2 = extend(LENS_X, bladeBot, xc, yc, SENSOR_X);
+      // 굴절 후 — 수렴점을 지나 센서까지
+      var far = Math.max(sensorX, xc) + 30;
+      var e1 = extend(LENS_X, bladeTop, xc, yc, far);
+      var e2 = extend(LENS_X, bladeBot, xc, yc, far);
       parts.push(line(LENS_X, bladeTop, e1.x, e1.y, col, isFocus ? 1.7 : 1.2, null, 'opacity="' + op + '"'));
       parts.push(line(LENS_X, bladeBot, e2.x, e2.y, col, isFocus ? 1.7 : 1.2, null, 'opacity="' + op + '"'));
 
-      // 수렴점
-      if (xc > LENS_X + 10 && xc < 890) {
-        parts.push('<circle cx="' + xc + '" cy="' + yc + '" r="3.2" fill="' + col + '" opacity="' + op + '"/>');
-      }
+      // 상이 맺히는 곳 = 여기서 상하가 뒤집힌다
+      parts.push(line(xc, AXIS_Y, xc, yc, col, 1.6, null, 'opacity="' + op + '"'));
+      parts.push(tri(xc, yc, yc < AXIS_Y ? 1 : -1, col));
+      parts.push('<circle cx="' + xc + '" cy="' + yc + '" r="3.4" fill="' + col + '"/>');
+
       // 센서 위 번짐 구간
-      var blurTop = Math.min(e1.y, e2.y), blurBot = Math.max(e1.y, e2.y);
-      var spread = Math.abs(blurBot - blurTop);
-      parts.push(line(SENSOR_X + 9, blurTop, SENSOR_X + 9, blurBot, col, 5, null,
+      var s1 = extend(LENS_X, bladeTop, xc, yc, sensorX);
+      var s2 = extend(LENS_X, bladeBot, xc, yc, sensorX);
+      var blurTop = Math.min(s1.y, s2.y), blurBot = Math.max(s1.y, s2.y);
+      parts.push(line(sensorX + 10, blurTop, sensorX + 10, blurBot, col, 5, null,
         'stroke-linecap="round" opacity="' + op + '"'));
-      if (spread < 4) {
-        parts.push('<circle cx="' + (SENSOR_X + 9) + '" cy="' + ((blurTop + blurBot) / 2) + '" r="3" fill="' + col + '"/>');
+      if (Math.abs(blurBot - blurTop) < 4) {
+        parts.push('<circle cx="' + (sensorX + 10) + '" cy="' + ((blurTop + blurBot) / 2) + '" r="3" fill="' + col + '"/>');
       }
 
-      // 피사체 표식
+      // 피사체 표식 (똑바로 선 화살표)
       parts.push(line(xo, AXIS_Y, xo, yo, col, 1.6, null, 'opacity="' + op + '"'));
-      parts.push('<circle cx="' + xo + '" cy="' + yo + '" r="4.5" fill="' + col + '"/>');
-      var ly = yo < AXIS_Y ? yo - 12 : yo + 20;
-      parts.push(txt(xo, ly, s.label + " · " + fmtDist(s.d), col, 11, "middle", 700));
+      parts.push(tri(xo, yo, yo < AXIS_Y ? 1 : -1, col));
+      var ly = yo < AXIS_Y ? yo - 14 : yo + 22;
+      parts.push(txt(xo, ly, sub.label + " · " + fmtDist(sub.d), col, 11, "middle", 700));
     });
 
-    // 구간 라벨
-    parts.push(txt(30, 405, "피사체 쪽 (로그 스케일)", C("--muted"), 11, "start", 500));
-    parts.push(txt(SENSOR_X, 405, "상 쪽 (차이 과장)", C("--muted"), 11, "end", 500));
-    parts.push(line(30, 390, 500, 390, C("--line"), 1));
-    parts.push(line(LENS_X, 390, SENSOR_X, 390, C("--line"), 1));
+    // 초점거리별 센서 위치 — 배율이 같으므로 이 눈금이 곧 "초점거리 = 렌즈~센서 거리"
+    var scaleY = 384;
+    var lastX = LENS_X;
+    FOCALS.forEach(function (o) {
+      var vx = LENS_X + s * (1 / (1 / o.f - 1 / (state.focusDist * 1000)));
+      lastX = Math.max(lastX, vx);
+    });
+    parts.push(line(LENS_X, scaleY, lastX, scaleY, lineC, 1.5));
+    FOCALS.forEach(function (o) {
+      var vx = LENS_X + s * (1 / (1 / o.f - 1 / (state.focusDist * 1000)));
+      var on = o.f === f;
+      parts.push(line(vx, scaleY - 6, vx, scaleY + 6, on ? beam : lineC, on ? 2.5 : 1.5));
+      parts.push(txt(vx, scaleY + 22, o.f + "mm", on ? beam : muted, on ? 12 : 10, "middle", on ? 700 : 500));
+    });
+    parts.push(txt(LENS_X - 10, scaleY + 4, "초점거리를 바꾸면 센서가 여기로 →", muted, 10, "end", 500));
+
+    // 범례
+    parts.push(txt(28, 452, "피사체 쪽 — 거리 로그 스케일", muted, 11, "start", 500));
+    parts.push(txt(884, 452, "상 쪽 — 실제 상거리 비율 · 피사체 간 차이만 " +
+      (mag < 1.15 ? "실제 그대로" : mag.toFixed(0) + "배 확대"), muted, 11, "end", 500));
+    parts.push(txt(884, 430, "화살표가 뒤집힌 곳 = 상이 맺히는 지점", muted, 10, "end", 500));
 
     rayEl.innerHTML = parts.join("");
+
+    var note = document.getElementById("rayNote");
+    if (note) {
+      note.textContent = "렌즈~센서 " + vF.toFixed(0) + "mm · 상 쪽은 실제 비율" +
+        (mag < 1.15 ? "" : " (피사체 간 차이만 " + mag.toFixed(0) + "배 확대)");
+    }
   }
 
   function extend(x1, y1, x2, y2, xTarget) {
@@ -1034,6 +1174,9 @@
       g3.textAlign = "left";
       var w = g3.measureText(text).width, padX = 7, padY = 5, h = 17;
       var left = align === "right" ? x - w : (align === "center" ? x - w / 2 : x);
+      // 캔버스 밖으로 밀려나 사라지지 않도록 가둔다
+      left = Math.max(padX + 2, Math.min(CW - w - padX - 2, left));
+      y = Math.max(h + padY + 2, Math.min(CH - padY - 2, y));
       g3.fillStyle = hexa(C("--surface"), 0.82);
       g3.beginPath();
       var rx = left - padX, ry = y - h + 1 - padY, rw = w + padX * 2, rh = h + padY * 2;
@@ -1042,11 +1185,17 @@
       g3.fillStyle = color;
       g3.fillText(text, left, y);
     }
-    tag(G.subject.label + "의 한 점", sp.x, sp.y - 22, C("--muted"), "center");
-    tag(G.focused ? "센서 위에서 한 점" : (G.crossed ? "센서 앞에서 모임" : "센서 뒤에서 모임"),
+    // ①→④ 순서로 읽으면 빛이 지나온 길이 그대로 된다
+    tag("① " + G.subject.label + "의 한 점", sp.x, sp.y - 22, C("--muted"), "center");
+    var ringTop = S(G.ring.reduce(function (a, b) { return a.y > b.y ? a : b; }));
+    tag("② 조리개 구멍 " + (fNumber() <= 2.0 ? "(원형)" : "(" + BLADES + "각형)"),
+      ringTop.x, ringTop.y - 16, C("--beam"), "center");
+    tag("③ " + (G.focused ? "센서 위에서 한 점" : (G.crossed ? "센서 앞에서 모임" : "센서 뒤에서 모임")),
       ap.x - 14, ap.y - 12, spotCol, "right");
     var sc = S({ x: G.xS, y: -half.y, z: 0 });
-    tag("센서면", sc.x, sc.y + 30, C("--focus"), "center");
+    tag("④ 센서면", sc.x, sc.y + 30, C("--focus"), "center");
+    var spotC = S({ x: G.xS, y: G.spot[0].y, z: G.spot[0].z });
+    if (!G.focused) tag("⑤ 남은 단면 = 보케", spotC.x + 16, spotC.y - 26, spotCol, "left");
 
     updateConeCaption(G);
   }
@@ -1649,6 +1798,20 @@
       drawReadout();
     });
   }
+
+  /* ================= 난이도 계층 =================
+     수치·용어가 부담스럽다는 피드백. 기본은 "쉽게"로 두고 상세는 한 번 눌러 펼친다. */
+  document.querySelectorAll("button[data-set-level]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var lv = b.getAttribute("data-set-level");
+      document.body.setAttribute("data-level", lv);
+      document.querySelectorAll("button[data-set-level]").forEach(function (o) {
+        o.setAttribute("aria-pressed", o === b ? "true" : "false");
+      });
+      render();   // 숨겼다 다시 펼친 캔버스를 다시 그린다
+    });
+  });
+  document.body.setAttribute("data-level", "easy");
 
   setFocus(2.5);
   render();
