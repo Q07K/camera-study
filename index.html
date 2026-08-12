@@ -1,0 +1,1297 @@
+<title>조리개 실험실 — 팬 포커스와 아웃 포커싱의 원리</title>
+<style>
+  :root {
+    --bg: #0A0E1A;
+    --surface: #121829;
+    --surface-2: #182034;
+    --line: #26304A;
+    --line-soft: #1D2539;
+    --blade: #303C58;
+    --text: #E8ECF5;
+    --muted: #8D9AB8;
+    --beam: #FFC24D;
+    --beam-dim: rgba(255, 194, 77, 0.22);
+    --focus: #35E0C8;
+    --blur: #FF7C6B;
+    --shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 18px 40px -24px rgba(0,0,0,0.9);
+    --mono: ui-monospace, "JetBrains Mono", "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+    --sans: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #EDF0F6;
+      --surface: #FFFFFF;
+      --surface-2: #F4F7FC;
+      --line: #CFD7E5;
+      --line-soft: #E2E8F2;
+      --blade: #9FADC4;
+      --text: #101A2C;
+      --muted: #5A6780;
+      --beam: #C87A06;
+      --beam-dim: rgba(200, 122, 6, 0.18);
+      --focus: #0B9584;
+      --blur: #D2432F;
+      --shadow: 0 1px 0 rgba(255,255,255,0.9) inset, 0 12px 30px -22px rgba(16,26,44,0.55);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #EDF0F6; --surface: #FFFFFF; --surface-2: #F4F7FC; --line: #CFD7E5; --line-soft: #E2E8F2;
+    --blade: #9FADC4;
+    --text: #101A2C; --muted: #5A6780; --beam: #C87A06; --beam-dim: rgba(200,122,6,0.18);
+    --focus: #0B9584; --blur: #D2432F;
+    --shadow: 0 1px 0 rgba(255,255,255,0.9) inset, 0 12px 30px -22px rgba(16,26,44,0.55);
+  }
+  :root[data-theme="dark"] {
+    --bg: #0A0E1A; --surface: #121829; --surface-2: #182034; --line: #26304A; --line-soft: #1D2539;
+    --blade: #303C58;
+    --text: #E8ECF5; --muted: #8D9AB8; --beam: #FFC24D; --beam-dim: rgba(255,194,77,0.22);
+    --focus: #35E0C8; --blur: #FF7C6B;
+    --shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 18px 40px -24px rgba(0,0,0,0.9);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 40px 20px 88px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0;
+  }
+  h1 {
+    font-size: clamp(30px, 5vw, 46px);
+    line-height: 1.12;
+    letter-spacing: -0.03em;
+    font-weight: 800;
+    margin: 10px 0 0;
+    text-wrap: balance;
+  }
+  h1 em { font-style: normal; color: var(--beam); }
+  .lede {
+    margin: 14px 0 0;
+    max-width: 62ch;
+    color: var(--muted);
+    font-size: 16px;
+  }
+
+  /* ---------- panels ---------- */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    box-shadow: var(--shadow);
+  }
+  .panel-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line-soft);
+    flex-wrap: wrap;
+  }
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text);
+    margin: 0;
+    font-weight: 600;
+  }
+  .panel-note { font-size: 12px; color: var(--muted); margin: 0; }
+  .panel-body { padding: 16px; }
+
+  /* ---------- control dock ---------- */
+  .dock {
+    display: grid;
+    grid-template-columns: 190px 1fr;
+    gap: 26px;
+    align-items: center;
+    padding: 22px;
+  }
+  .iris-cell { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  #iris { width: 168px; height: 168px; display: block; }
+  .fnum {
+    font-family: var(--mono);
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--beam);
+    font-variant-numeric: tabular-nums;
+  }
+  .controls { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+  .ctl { display: flex; flex-direction: column; gap: 8px; }
+  .ctl-head {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+  }
+  .ctl-head b {
+    color: var(--text); font-size: 13px; font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em; text-transform: none;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 22px; background: transparent; cursor: pointer; margin: 0;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px; background: var(--line); border-radius: 2px;
+  }
+  input[type="range"]::-moz-range-track { height: 4px; background: var(--line); border-radius: 2px; }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 18px; height: 18px; margin-top: -7px; border-radius: 50%;
+    background: var(--beam); border: 3px solid var(--surface);
+    box-shadow: 0 0 0 1px var(--beam);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--beam); border: 3px solid var(--surface); box-shadow: 0 0 0 1px var(--beam);
+  }
+  input[type="range"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; border-radius: 4px; }
+
+  .stopscale {
+    display: flex; justify-content: space-between;
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    letter-spacing: 0.04em; margin-top: -4px;
+  }
+  .stopscale span { cursor: pointer; padding: 2px 1px; }
+  .stopscale span:hover { color: var(--beam); }
+  .stopscale span[data-on="1"] { color: var(--beam); font-weight: 700; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  button.chip {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    padding: 7px 11px;
+    color: var(--muted);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: color .15s, border-color .15s, background .15s;
+  }
+  button.chip:hover { color: var(--text); border-color: var(--muted); }
+  button.chip[aria-pressed="true"] {
+    color: var(--bg); background: var(--beam); border-color: var(--beam); font-weight: 700;
+  }
+  :root[data-theme="light"] button.chip[aria-pressed="true"],
+  button.chip[aria-pressed="true"] { color: #0A0E1A; }
+  button.chip:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  .presets { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .presets .lbl {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted); margin-right: 2px;
+  }
+
+  /* ---------- main grid ---------- */
+  .stage { display: grid; grid-template-columns: 1.05fr 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 900px) {
+    .stage { grid-template-columns: 1fr; }
+    .dock { grid-template-columns: 1fr; gap: 20px; }
+  }
+
+  .figbox { width: 100%; overflow-x: auto; }
+  svg.diagram { display: block; width: 100%; height: auto; }
+  #photo { display: block; width: 100%; height: auto; border-radius: 3px; cursor: crosshair; background: #05070d; }
+  .photo-hint {
+    font-size: 12px; color: var(--muted); margin: 10px 0 0;
+    display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  }
+  .photo-hint code {
+    font-family: var(--mono); font-size: 11px; color: var(--text);
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 3px; padding: 1px 5px;
+  }
+
+  /* ---------- readouts ---------- */
+  .readout { width: 100%; border-collapse: collapse; font-size: 13px; color: var(--text); }
+  .readout th, .readout td {
+    text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line-soft);
+  }
+  .readout td { color: var(--text); }
+  .readout th {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted); font-weight: 500;
+  }
+  .readout td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+  .readout tr:last-child td { border-bottom: none; }
+  .verdict {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em;
+    padding: 3px 7px; border-radius: 3px; white-space: nowrap;
+  }
+  .v-sharp { color: var(--focus); background: color-mix(in srgb, var(--focus) 14%, transparent); }
+  .v-soft  { color: var(--beam); background: color-mix(in srgb, var(--beam) 16%, transparent); }
+  .v-blur  { color: var(--blur); background: color-mix(in srgb, var(--blur) 15%, transparent); }
+  .swatch { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 7px; vertical-align: baseline; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line-soft); }
+  .stat { background: var(--surface); padding: 14px 16px; }
+  .stat .k {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted); display: block;
+  }
+  .stat .v {
+    font-family: var(--mono); font-size: 19px; font-weight: 700; letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums; margin-top: 4px; display: block;
+  }
+  .stat .u { font-size: 12px; color: var(--muted); font-weight: 400; }
+  @media (max-width: 700px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+
+  .panfocus-flag {
+    display: inline-block; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em;
+    color: var(--bg); background: var(--focus); padding: 2px 7px; border-radius: 3px; margin-left: 8px;
+  }
+  :root[data-theme="light"] .panfocus-flag, .panfocus-flag { color: #06101c; }
+
+  /* ---------- prose ---------- */
+  .prose { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  @media (max-width: 900px) { .prose { grid-template-columns: 1fr; } }
+  .prose h2 {
+    font-size: 20px; letter-spacing: -0.02em; font-weight: 800; margin: 0 0 10px;
+  }
+  .prose h3 {
+    font-size: 14px; font-weight: 700; margin: 18px 0 6px; letter-spacing: -0.01em;
+  }
+  .prose p { margin: 0 0 10px; font-size: 14.5px; color: var(--muted); }
+  .prose p strong { color: var(--text); font-weight: 700; }
+  .prose ul { margin: 0; padding-left: 18px; font-size: 14.5px; color: var(--muted); }
+  .prose li { margin-bottom: 6px; }
+  .prose li strong { color: var(--text); }
+  figure { margin: 0 0 4px; }
+  figcaption { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .kbd {
+    font-family: var(--mono); font-size: 12px; color: var(--text);
+    border-bottom: 2px solid var(--beam);
+  }
+  footer {
+    border-top: 1px solid var(--line-soft); padding-top: 18px;
+    font-size: 12px; color: var(--muted); font-family: var(--mono); letter-spacing: 0.04em;
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Aperture Lab · 조리개 · 피사계 심도</p>
+    <h1>조리개를 조이면 왜 <em>전부 선명</em>해지고,<br>열면 왜 <em>뒤가 녹아내릴까</em></h1>
+    <p class="lede">
+      렌즈는 언제나 <b>한 거리</b>에만 정확히 초점을 맞춥니다. 그 앞뒤의 물체는 센서 위에서 점이 아니라
+      <b>작은 원</b>으로 번져 맺히고, 이 원이 충분히 작으면 우리 눈은 그것을 &ldquo;선명하다&rdquo;고 판단합니다.
+      조리개는 이 원의 크기를 직접 조절하는 밸브입니다. 아래에서 직접 돌려 보세요.
+    </p>
+  </header>
+
+  <!-- ============ CONTROL DOCK ============ -->
+  <section class="panel">
+    <div class="panel-head">
+      <h2 class="panel-title">촬영 설정</h2>
+      <p class="panel-note">풀프레임 36×24mm · 허용 착란원 0.03mm 기준</p>
+    </div>
+    <div class="dock">
+      <div class="iris-cell">
+        <canvas id="iris" width="336" height="336" aria-label="조리개 날개 모양"></canvas>
+        <span class="fnum" id="fnumLabel">f/2.8</span>
+      </div>
+
+      <div class="controls">
+        <div class="ctl">
+          <div class="ctl-head"><span>조리개 (F 값)</span><b id="apInfo">유효 구경 17.9mm</b></div>
+          <input type="range" id="apSlider" min="0" max="8" step="1" value="3" aria-label="조리개 값">
+          <div class="stopscale" id="stopScale"></div>
+        </div>
+
+        <div class="ctl">
+          <div class="ctl-head"><span>렌즈 초점거리</span><b id="flInfo">50mm · 표준</b></div>
+          <div class="chips" id="flChips"></div>
+        </div>
+
+        <div class="ctl">
+          <div class="ctl-head"><span>초점을 맞춘 거리</span><b id="fdInfo">2.50 m</b></div>
+          <input type="range" id="fdSlider" min="0" max="1000" step="1" value="500" aria-label="초점 거리">
+          <div class="chips" id="targetChips"></div>
+        </div>
+
+        <div class="presets">
+          <span class="lbl">프리셋</span>
+          <button class="chip" data-preset="portrait" type="button">인물 아웃포커싱</button>
+          <button class="chip" data-preset="pan" type="button">풍경 팬 포커스</button>
+          <button class="chip" data-preset="snap" type="button">일상 스냅</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE ============ -->
+  <section class="stage">
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">1 · 렌즈 안에서 벌어지는 일</h2>
+        <p class="panel-note">가로축은 로그 스케일 · 상면 차이는 과장</p>
+      </div>
+      <div class="panel-body">
+        <div class="figbox">
+          <svg id="rayDiagram" class="diagram" viewBox="0 0 900 430" role="img"
+               aria-label="세 거리의 피사체에서 나온 광선이 조리개를 지나 센서에 맺히는 단면도">
+          </svg>
+        </div>
+        <div class="figbox" style="margin-top:6px">
+          <svg id="cocInset" class="diagram" viewBox="0 0 900 190" role="img"
+               aria-label="센서 위에 맺힌 각 피사체의 착란원 크기 비교">
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">2 · 실제로 찍히는 사진</h2>
+        <p class="panel-note">같은 자리, 같은 밝기로 보정</p>
+      </div>
+      <div class="panel-body">
+        <canvas id="photo" width="760" height="507" aria-label="조리개 설정에 따른 시뮬레이션 사진"></canvas>
+        <p class="photo-hint">
+          <span>사진 속 피사체를 <code>클릭</code>하면 그곳에 초점이 맞습니다.</span>
+          <span id="expoInfo"></span>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RULER + READOUT ============ -->
+  <section class="panel">
+    <div class="panel-head">
+      <h2 class="panel-title">3 · 선명하게 나오는 구간 (피사계 심도)</h2>
+      <p class="panel-note" id="dofNote"></p>
+    </div>
+    <div class="panel-body">
+      <div class="figbox">
+        <svg id="ruler" class="diagram" viewBox="0 0 900 150" role="img"
+             aria-label="카메라로부터의 거리 축 위에 표시된 피사계 심도 범위와 피사체 위치">
+        </svg>
+      </div>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div class="panel-body" style="padding-top:0">
+      <table class="readout">
+        <thead>
+          <tr>
+            <th>피사체</th>
+            <th>거리</th>
+            <th style="text-align:right">착란원 지름</th>
+            <th style="text-align:right">허용치 대비</th>
+            <th>판정</th>
+          </tr>
+        </thead>
+        <tbody id="readoutBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ PROSE ============ -->
+  <section class="prose">
+    <div class="panel">
+      <div class="panel-body">
+        <h2>빛다발의 원뿔이 전부다</h2>
+        <p>
+          피사체의 한 점에서 나온 빛은 사방으로 퍼지다가 렌즈가 열어 준 구멍(조리개)만큼만 통과합니다.
+          렌즈는 그 빛을 굴절시켜 <strong>다시 한 점으로</strong> 모으는데, 그 점이 정확히 센서 위에 놓일 때가
+          <strong>초점이 맞은 상태</strong>입니다.
+        </p>
+        <p>
+          문제는 더 가깝거나 먼 피사체는 <strong>다른 위치</strong>에 모인다는 것입니다. 센서는 한 장뿐이니
+          그 지점을 지나쳤거나 도달하기 전인 <strong>원뿔의 단면</strong>이 기록되고, 이 단면이 바로
+          <span style="color:var(--blur)">착란원(Circle of Confusion)</span>입니다.
+        </p>
+        <figure style="margin-top:18px">
+          <svg viewBox="0 0 460 230" class="diagram" role="img"
+               aria-label="같은 초점 오차라도 조리개를 열면 광선 원뿔이 넓어 착란원이 커지고, 조이면 원뿔이 가늘어 착란원이 작아진다">
+            <defs>
+              <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M0 0 L10 5 L0 10 z" fill="currentColor"></path>
+              </marker>
+            </defs>
+            <!-- 상단: 활짝 열린 조리개 -->
+            <text x="0" y="14" font-size="11" font-family="ui-monospace, monospace" fill="currentColor" opacity="0.7">f/1.4 — 넓은 원뿔</text>
+            <line x1="150" y1="26" x2="150" y2="96" stroke="var(--beam)" stroke-width="7" stroke-linecap="round"></line>
+            <path d="M150 30 L300 61 L150 92 Z" fill="var(--beam-dim)"></path>
+            <line x1="150" y1="30" x2="360" y2="74" stroke="var(--beam)" stroke-width="1.4"></line>
+            <line x1="150" y1="92" x2="360" y2="48" stroke="var(--beam)" stroke-width="1.4"></line>
+            <line x1="300" y1="18" x2="300" y2="104" stroke="currentColor" stroke-width="1" stroke-dasharray="3 3" opacity="0.5"></line>
+            <text x="300" y="14" font-size="10" text-anchor="middle" fill="currentColor" opacity="0.6">상이 맺히는 곳</text>
+            <line x1="360" y1="20" x2="360" y2="102" stroke="currentColor" stroke-width="2"></line>
+            <line x1="366" y1="48" x2="366" y2="74" stroke="var(--blur)" stroke-width="5" stroke-linecap="round"></line>
+            <text x="378" y="65" font-size="11" fill="var(--blur)">큰 착란원</text>
+            <!-- 하단: 조인 조리개 -->
+            <text x="0" y="146" font-size="11" font-family="ui-monospace, monospace" fill="currentColor" opacity="0.7">f/16 — 가는 원뿔</text>
+            <line x1="150" y1="150" x2="150" y2="168" stroke="var(--beam)" stroke-width="7" stroke-linecap="round"></line>
+            <path d="M150 152 L300 159 L150 166 Z" fill="var(--beam-dim)"></path>
+            <line x1="150" y1="152" x2="360" y2="169" stroke="var(--beam)" stroke-width="1.4"></line>
+            <line x1="150" y1="166" x2="360" y2="149" stroke="var(--beam)" stroke-width="1.4"></line>
+            <line x1="300" y1="132" x2="300" y2="186" stroke="currentColor" stroke-width="1" stroke-dasharray="3 3" opacity="0.5"></line>
+            <line x1="360" y1="134" x2="360" y2="184" stroke="currentColor" stroke-width="2"></line>
+            <line x1="366" y1="152" x2="366" y2="166" stroke="var(--focus)" stroke-width="5" stroke-linecap="round"></line>
+            <text x="378" y="163" font-size="11" fill="var(--focus)">작은 착란원</text>
+            <line x1="150" y1="205" x2="360" y2="205" stroke="currentColor" stroke-width="1" opacity="0.45" marker-end="url(#ar)"></line>
+            <text x="255" y="222" font-size="10" text-anchor="middle" fill="currentColor" opacity="0.6">두 경우 모두 초점 오차는 동일</text>
+          </svg>
+          <figcaption>
+            초점이 빗나간 정도가 똑같아도, 조리개가 넓으면 원뿔이 굵어 센서에서 크게 번지고
+            조이면 원뿔이 가늘어 거의 점으로 남습니다. 조리개가 심도를 바꾸는 이유는 이 각도 하나입니다.
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-body">
+        <h2>용어를 정확히</h2>
+        <h3>인 포커스 (In focus)</h3>
+        <p>착란원이 허용치(풀프레임 기준 약 0.03mm)보다 작아 눈에 선명하게 보이는 상태.
+           위 표에서 <span class="verdict v-sharp">선명</span>으로 표시되는 구간입니다.</p>
+        <h3>아웃 포커싱 (Out of focus)</h3>
+        <p>초점면에서 벗어나 착란원이 크게 번진 상태. 배경이 뭉개져 피사체가 도드라지므로
+           인물·제품 사진에서 의도적으로 만듭니다. <strong>조리개를 활짝 열고(F 값을 낮추고),
+           초점거리가 긴 렌즈로, 배경은 멀리</strong> 두면 강해집니다.</p>
+        <h3>팬 포커스 (Pan focus)</h3>
+        <p>앞에서 무한대까지 전 구간이 허용치 안에 들어와 <strong>모두 선명</strong>한 상태.
+           풍경·건축·스냅에서 씁니다. <strong>과초점거리</strong>에 초점을 두면 그 절반 지점부터
+           무한대까지가 한 번에 들어옵니다 — 눈금자에서 확인해 보세요.</p>
+        <h3>보케 (Bokeh)</h3>
+        <p>배경의 점광원이 착란원 크기 그대로 퍼져 만들어지는 빛망울. 그래서 <strong>조리개 날개 모양</strong>이
+           그대로 찍힙니다. 활짝 열면 동그랗고, 조이면 날개 수만큼 각진 다각형이 됩니다.
+           사진 속 먼 불빛을 F 값을 바꿔 가며 관찰해 보세요.</p>
+
+        <h2 style="margin-top:26px">직접 확인해 볼 것</h2>
+        <ul>
+          <li><strong>f/1.4 → f/22</strong>로 조여 보기. 착란원 지름 숫자가 어떻게 줄고, 심도 밴드가 어떻게 넓어지는지.</li>
+          <li><strong>초점을 앞 잎에</strong> 맞춰 보기. 주인공이던 메뉴판 글씨가 순식간에 읽을 수 없게 됩니다.</li>
+          <li><strong>같은 f/4에서 24mm와 135mm</strong> 비교. 초점거리만 늘려도 심도는 급격히 얕아집니다.</li>
+          <li><strong>조인 만큼 어두워진다</strong>는 대가. 사진 아래 셔터 속도 표시를 보세요. 팬 포커스는 흔들림·노이즈와의 거래입니다.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    얇은 렌즈 근사 · 회절 및 렌즈 수차 미반영 · 착란원 c = (f²/N) × |S−D| / (S × (D−f))
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ================= 상태 ================= */
+  var STOPS = [1.4, 2, 2.8, 4, 5.6, 8, 11, 16, 22];
+  var FOCALS = [
+    { f: 24,  name: "광각" },
+    { f: 35,  name: "준광각" },
+    { f: 50,  name: "표준" },
+    { f: 85,  name: "인물" },
+    { f: 135, name: "망원" }
+  ];
+  var SUBJECTS = [
+    { id: "leaf",  d: 0.7,  label: "앞 잎",     color: "--blur"  },
+    { id: "cup",   d: 2.5,  label: "메뉴판",    color: "--focus" },
+    { id: "tree",  d: 9,    label: "나무",      color: "--beam"  },
+    { id: "light", d: 45,   label: "먼 불빛",   color: "--muted" }
+  ];
+  var COC_LIMIT = 0.03;      // mm, 풀프레임 허용 착란원
+  var SENSOR_W = 36;         // mm
+  var FD_MIN = 0.4, FD_MAX = 30;  // m
+
+  var state = { stop: 3, focal: 50, focusDist: 2.5 };
+
+  var css = getComputedStyle(document.documentElement);
+  function C(v) { return css.getPropertyValue(v).trim() || "#888"; }
+  function refreshColors() { css = getComputedStyle(document.documentElement); }
+
+  /* ================= 광학 계산 ================= */
+  function fNumber() { return STOPS[state.stop]; }
+
+  // 착란원 지름(mm). S: 피사체 거리(m), D: 초점 거리(m)
+  function coc(S, D) {
+    var f = state.focal, N = fNumber();
+    var Smm = S * 1000, Dmm = D * 1000;
+    if (Dmm <= f + 1e-6) return 0;
+    return (f * f / N) * Math.abs(Smm - Dmm) / (Smm * (Dmm - f));
+  }
+  // 상거리 v(mm)
+  function imageDist(S) {
+    var f = state.focal, Smm = S * 1000;
+    return 1 / (1 / f - 1 / Smm);
+  }
+  function hyperfocal() {  // mm
+    var f = state.focal;
+    return f * f / (fNumber() * COC_LIMIT) + f;
+  }
+  function dofRange() {
+    var f = state.focal, H = hyperfocal(), S = state.focusDist * 1000;
+    var near = S * (H - f) / (H + S - 2 * f);
+    var far = (S < H) ? S * (H - f) / (H - S) : Infinity;
+    return { near: near / 1000, far: far === Infinity ? Infinity : far / 1000, H: H / 1000 };
+  }
+
+  /* ================= 조리개 아이리스 ================= */
+  var irisCv = document.getElementById("iris");
+  var irisCtx = irisCv.getContext("2d");
+  var BLADES = 7;
+
+  function drawIris() {
+    var w = irisCv.width, cx = w / 2, cy = w / 2, R = w * 0.44;
+    var N = fNumber();
+    var open = Math.max(0.075, (1.4 / N) * 0.86);   // 개구 반경 비율 ∝ 1/N
+    var r = R * open;
+    irisCtx.clearRect(0, 0, w, w);
+
+    // 배럴
+    irisCtx.beginPath();
+    irisCtx.arc(cx, cy, R + w * 0.045, 0, Math.PI * 2);
+    irisCtx.fillStyle = C("--surface-2");
+    irisCtx.fill();
+    irisCtx.lineWidth = 3;
+    irisCtx.strokeStyle = C("--line");
+    irisCtx.stroke();
+
+    // 날개(어두운 금속면)
+    irisCtx.beginPath();
+    irisCtx.arc(cx, cy, R, 0, Math.PI * 2);
+    irisCtx.fillStyle = C("--blade");
+    irisCtx.fill();
+
+    // 개구부 — 날개 수만큼의 다각형
+    var rot = -Math.PI / 2 + (1 - open) * 0.55;
+    irisCtx.beginPath();
+    for (var i = 0; i <= BLADES; i++) {
+      var a = rot + i * 2 * Math.PI / BLADES;
+      var x = cx + r * Math.cos(a), y = cy + r * Math.sin(a);
+      if (i === 0) irisCtx.moveTo(x, y); else irisCtx.lineTo(x, y);
+    }
+    irisCtx.closePath();
+    var g = irisCtx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(r, 1));
+    g.addColorStop(0, C("--beam"));
+    g.addColorStop(1, C("--beam"));
+    irisCtx.fillStyle = g;
+    irisCtx.fill();
+
+    // 날개 경계선
+    irisCtx.strokeStyle = C("--surface");
+    irisCtx.lineWidth = 2;
+    for (var j = 0; j < BLADES; j++) {
+      var ang = rot + j * 2 * Math.PI / BLADES;
+      var px = cx + r * Math.cos(ang), py = cy + r * Math.sin(ang);
+      var oa = ang + 1.05;
+      irisCtx.beginPath();
+      irisCtx.moveTo(px, py);
+      irisCtx.lineTo(cx + R * Math.cos(oa), cy + R * Math.sin(oa));
+      irisCtx.stroke();
+    }
+    // 개구 테두리
+    irisCtx.beginPath();
+    for (var k = 0; k <= BLADES; k++) {
+      var a2 = rot + k * 2 * Math.PI / BLADES;
+      var x2 = cx + r * Math.cos(a2), y2 = cy + r * Math.sin(a2);
+      if (k === 0) irisCtx.moveTo(x2, y2); else irisCtx.lineTo(x2, y2);
+    }
+    irisCtx.closePath();
+    irisCtx.strokeStyle = C("--surface");
+    irisCtx.lineWidth = 2.5;
+    irisCtx.stroke();
+  }
+
+  /* ================= 광선 단면도 ================= */
+  var rayEl = document.getElementById("rayDiagram");
+  var LENS_X = 560, SENSOR_X = 850, AXIS_Y = 215, IMG_LEN = SENSOR_X - LENS_X;
+
+  function objX(d) {  // 로그 거리 → x 좌표
+    var t = Math.log(d / 0.5) / Math.log(60 / 0.5);
+    return 500 - 470 * Math.min(1, Math.max(0, t));
+  }
+
+  function drawRays() {
+    var f = state.focal, N = fNumber();
+    var apPx = Math.max(6, Math.min(150, (f / N) * 3.4));  // 개구 반경 표현
+    var vF = imageDist(state.focusDist);
+
+    // 축방향 과장 계수: 가장 큰 상거리 편차가 화면의 32%가 되도록
+    var maxRel = 0;
+    SUBJECTS.forEach(function (s) {
+      maxRel = Math.max(maxRel, Math.abs(imageDist(s.d) / vF - 1));
+    });
+    var K = maxRel > 1e-6 ? Math.min(600, 0.32 / maxRel) : 1;
+
+    var parts = [];
+    parts.push('<defs><marker id="rar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="' + C("--muted") + '"/></marker></defs>');
+
+    // 광학 축
+    parts.push(line(20, AXIS_Y, SENSOR_X, AXIS_Y, C("--line"), 1, "4 4"));
+
+    // 센서
+    parts.push('<rect x="' + (SENSOR_X - 4) + '" y="' + (AXIS_Y - 105) + '" width="8" height="210" fill="' + C("--focus") + '" opacity="0.9" rx="2"/>');
+    parts.push(txt(SENSOR_X + 12, AXIS_Y - 115, "센서", C("--focus"), 12, "end", 700));
+
+    // 렌즈 + 조리개
+    parts.push('<ellipse cx="' + LENS_X + '" cy="' + AXIS_Y + '" rx="13" ry="' + Math.max(apPx + 6, 30) + '" fill="' + C("--beam") + '" opacity="0.13"/>');
+    parts.push('<ellipse cx="' + LENS_X + '" cy="' + AXIS_Y + '" rx="13" ry="' + Math.max(apPx + 6, 30) + '" fill="none" stroke="' + C("--beam") + '" stroke-width="1.6" opacity="0.65"/>');
+    // 조리개 날개(가림막)
+    var bladeTop = AXIS_Y - apPx, bladeBot = AXIS_Y + apPx;
+    parts.push('<rect x="' + (LENS_X - 7) + '" y="' + (AXIS_Y - 150) + '" width="14" height="' + Math.max(0, bladeTop - (AXIS_Y - 150)) + '" fill="' + C("--line") + '" rx="2"/>');
+    parts.push('<rect x="' + (LENS_X - 7) + '" y="' + bladeBot + '" width="14" height="' + Math.max(0, (AXIS_Y + 150) - bladeBot) + '" fill="' + C("--line") + '" rx="2"/>');
+    parts.push(txt(LENS_X, AXIS_Y - 158, "렌즈 + 조리개", C("--muted"), 11, "middle", 500));
+    // 개구 치수선
+    parts.push(line(LENS_X + 26, bladeTop, LENS_X + 26, bladeBot, C("--muted"), 1, null, "marker-end=\"url(#rar)\""));
+    parts.push(txt(LENS_X + 32, AXIS_Y - apPx - 6, "구멍 " + (f / N).toFixed(1) + "mm", C("--muted"), 10, "start", 500));
+
+    // 피사체별 광선
+    var heights = { leaf: -92, cup: 96, tree: 46, light: -40 };
+    SUBJECTS.forEach(function (s) {
+      var xo = objX(s.d), yo = AXIS_Y + heights[s.id];
+      var v = imageDist(s.d);
+      var xc = LENS_X + IMG_LEN * (1 + K * (v / vF - 1));
+      var yc = AXIS_Y - (yo - AXIS_Y) * 0.46;
+      var isFocus = Math.abs(s.d - state.focusDist) / state.focusDist < 0.02;
+      var col = isFocus ? C("--focus") : C(s.color);
+      var op = isFocus ? 1 : 0.72;
+
+      // 렌즈까지의 빛다발
+      parts.push('<path d="M' + xo + ' ' + yo + ' L' + LENS_X + ' ' + bladeTop + ' L' + LENS_X + ' ' + bladeBot + ' Z" fill="' + C("--beam") + '" opacity="' + (isFocus ? 0.14 : 0.07) + '"/>');
+      parts.push(line(xo, yo, LENS_X, bladeTop, C("--beam"), isFocus ? 1.5 : 1, null, 'opacity="' + (isFocus ? 0.85 : 0.4) + '"'));
+      parts.push(line(xo, yo, LENS_X, bladeBot, C("--beam"), isFocus ? 1.5 : 1, null, 'opacity="' + (isFocus ? 0.85 : 0.4) + '"'));
+
+      // 굴절 후 — 수렴점까지, 그리고 센서까지 연장
+      var e1 = extend(LENS_X, bladeTop, xc, yc, SENSOR_X);
+      var e2 = extend(LENS_X, bladeBot, xc, yc, SENSOR_X);
+      parts.push(line(LENS_X, bladeTop, e1.x, e1.y, col, isFocus ? 1.7 : 1.2, null, 'opacity="' + op + '"'));
+      parts.push(line(LENS_X, bladeBot, e2.x, e2.y, col, isFocus ? 1.7 : 1.2, null, 'opacity="' + op + '"'));
+
+      // 수렴점
+      if (xc > LENS_X + 10 && xc < 890) {
+        parts.push('<circle cx="' + xc + '" cy="' + yc + '" r="3.2" fill="' + col + '" opacity="' + op + '"/>');
+      }
+      // 센서 위 번짐 구간
+      var blurTop = Math.min(e1.y, e2.y), blurBot = Math.max(e1.y, e2.y);
+      var spread = Math.abs(blurBot - blurTop);
+      parts.push(line(SENSOR_X + 9, blurTop, SENSOR_X + 9, blurBot, col, 5, null,
+        'stroke-linecap="round" opacity="' + op + '"'));
+      if (spread < 4) {
+        parts.push('<circle cx="' + (SENSOR_X + 9) + '" cy="' + ((blurTop + blurBot) / 2) + '" r="3" fill="' + col + '"/>');
+      }
+
+      // 피사체 표식
+      parts.push(line(xo, AXIS_Y, xo, yo, col, 1.6, null, 'opacity="' + op + '"'));
+      parts.push('<circle cx="' + xo + '" cy="' + yo + '" r="4.5" fill="' + col + '"/>');
+      var ly = yo < AXIS_Y ? yo - 12 : yo + 20;
+      parts.push(txt(xo, ly, s.label + " · " + fmtDist(s.d), col, 11, "middle", 700));
+    });
+
+    // 구간 라벨
+    parts.push(txt(30, 405, "피사체 쪽 (로그 스케일)", C("--muted"), 11, "start", 500));
+    parts.push(txt(SENSOR_X, 405, "상 쪽 (차이 과장)", C("--muted"), 11, "end", 500));
+    parts.push(line(30, 390, 500, 390, C("--line"), 1));
+    parts.push(line(LENS_X, 390, SENSOR_X, 390, C("--line"), 1));
+
+    rayEl.innerHTML = parts.join("");
+  }
+
+  function extend(x1, y1, x2, y2, xTarget) {
+    if (Math.abs(x2 - x1) < 1e-6) return { x: xTarget, y: y2 };
+    var t = (xTarget - x1) / (x2 - x1);
+    return { x: xTarget, y: y1 + (y2 - y1) * t };
+  }
+  function line(x1, y1, x2, y2, col, w, dash, extra) {
+    return '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 +
+      '" stroke="' + col + '" stroke-width="' + w + '"' +
+      (dash ? ' stroke-dasharray="' + dash + '"' : "") + (extra ? " " + extra : "") + "/>";
+  }
+  function txt(x, y, s, col, size, anchor, weight) {
+    return '<text x="' + x + '" y="' + y + '" fill="' + col + '" font-size="' + size +
+      '" text-anchor="' + (anchor || "start") + '" font-weight="' + (weight || 400) +
+      '" font-family="ui-monospace, monospace">' + s + "</text>";
+  }
+
+  /* ================= 착란원 인셋 ================= */
+  var cocEl = document.getElementById("cocInset");
+  function drawCocInset() {
+    var parts = [];
+    var scale = 190;   // px per mm (고정 스케일 — 설정을 바꿔도 비교 가능)
+    var y = 100;
+    parts.push(txt(0, 16, "센서 위에 맺힌 점의 실제 크기 (고정 배율)", C("--muted"), 11, "start", 500));
+
+    SUBJECTS.forEach(function (s, i) {
+      var cx = 110 + i * 218;
+      var c = coc(s.d, state.focusDist);
+      var full = c * scale / 2;
+      var r = Math.min(74, full);
+      var clipped = full > 74;
+      var sharp = c <= COC_LIMIT;
+      var col = sharp ? C("--focus") : C("--blur");
+
+      // 허용 착란원 기준 원
+      parts.push('<circle cx="' + cx + '" cy="' + y + '" r="' + (COC_LIMIT * scale / 2) +
+        '" fill="none" stroke="' + C("--muted") + '" stroke-width="1" stroke-dasharray="3 3"/>');
+      parts.push('<circle cx="' + cx + '" cy="' + y + '" r="' + Math.max(1.2, r) +
+        '" fill="' + col + '" opacity="0.28"/>');
+      parts.push('<circle cx="' + cx + '" cy="' + y + '" r="' + Math.max(1.2, r) +
+        '" fill="none" stroke="' + col + '" stroke-width="1.6"' +
+        (clipped ? ' stroke-dasharray="6 5"' : "") + "/>");
+      if (clipped) parts.push(txt(cx, y + 4, "표시 범위 밖", col, 10, "middle", 700));
+      parts.push(txt(cx, 40, s.label, C("--text"), 11, "middle", 700));
+      parts.push(txt(cx, 182, c.toFixed(3) + " mm", col, 11, "middle", 700));
+    });
+    parts.push(txt(896, 16, "점선 = 허용 착란원 0.03mm", C("--muted"), 10, "end", 500));
+    cocEl.innerHTML = parts.join("");
+  }
+
+  /* ================= 거리 눈금자 ================= */
+  var rulerEl = document.getElementById("ruler");
+  var R_MIN = 0.3, R_MAX = 120;
+  function rx(d) {
+    var t = Math.log(Math.min(R_MAX, Math.max(R_MIN, d)) / R_MIN) / Math.log(R_MAX / R_MIN);
+    return 60 + t * 790;
+  }
+  function drawRuler() {
+    var dof = dofRange();
+    var parts = [];
+    var y = 88;
+
+    parts.push(line(60, y, 850, y, C("--line"), 2));
+    [0.3, 0.5, 1, 2, 5, 10, 20, 50, 100].forEach(function (d) {
+      parts.push(line(rx(d), y - 5, rx(d), y + 5, C("--line"), 1.5));
+      parts.push(txt(rx(d), y + 24, d >= 1 ? d + "m" : d + "m", C("--muted"), 10, "middle", 500));
+    });
+    parts.push(txt(866, y + 5, "∞", C("--muted"), 16, "middle", 700));
+
+    // 심도 밴드
+    var x1 = rx(dof.near), x2 = dof.far === Infinity ? 858 : rx(dof.far);
+    parts.push('<rect x="' + x1 + '" y="' + (y - 26) + '" width="' + Math.max(2, x2 - x1) +
+      '" height="52" fill="' + C("--focus") + '" opacity="0.20" rx="3"/>');
+    parts.push(line(x1, y - 26, x1, y + 26, C("--focus"), 2));
+    parts.push(line(x2, y - 26, x2, y + 26, C("--focus"), 2));
+    var bandLabel = "선명하게 나오는 구간 " + fmtDist(dof.near) + " ~ " + (dof.far === Infinity ? "∞" : fmtDist(dof.far));
+    var labelAnchor = x2 > 700 ? "end" : "start";
+    parts.push(txt(labelAnchor === "end" ? x2 : x1, y - 34, bandLabel, C("--focus"), 11, labelAnchor, 700));
+
+    // 초점면
+    var xf = rx(state.focusDist);
+    parts.push(line(xf, y - 52, xf, y + 40, C("--beam"), 2, "5 3"));
+    parts.push(txt(xf, y - 58, "초점 " + fmtDist(state.focusDist), C("--beam"), 11, "middle", 700));
+
+    // 과초점거리
+    if (dof.H < R_MAX) {
+      parts.push(line(rx(dof.H), y + 30, rx(dof.H), y + 44, C("--muted"), 1, "3 2"));
+      parts.push(txt(rx(dof.H), y + 58, "과초점 " + fmtDist(dof.H), C("--muted"), 10, "middle", 500));
+    }
+
+    // 피사체 마커
+    SUBJECTS.forEach(function (s) {
+      var x = rx(s.d);
+      var sharp = coc(s.d, state.focusDist) <= COC_LIMIT;
+      var col = sharp ? C("--focus") : C("--blur");
+      parts.push('<circle cx="' + x + '" cy="' + y + '" r="5.5" fill="' + col + '" stroke="' + C("--surface") + '" stroke-width="2"/>');
+      parts.push(txt(x, y - 12, s.label, col, 10, "middle", 700));
+    });
+
+    rulerEl.innerHTML = parts.join("");
+  }
+
+  /* ================= 사진 시뮬레이션 ================= */
+  var photo = document.getElementById("photo");
+  var pctx = photo.getContext("2d");
+  var PW = photo.width, PH = photo.height;
+  var PAD = 120;
+  var buf = document.createElement("canvas");
+  buf.width = PW + PAD * 2; buf.height = PH + PAD * 2;
+  var bctx = buf.getContext("2d");
+
+  var CAM_H = 1.05;      // 카메라 높이 m
+  function pxPerMm() { return PW / SENSOR_W; }
+  // 핀홀 투영: 화면 좌표 = (월드 오프셋 / 거리) × 초점거리 × (픽셀/밀리미터)
+  function P(X, Y, Z) {
+    var k = state.focal * pxPerMm();
+    return { x: PW / 2 + (X / Z) * k, y: PH / 2 - ((Y - CAM_H) / Z) * k };
+  }
+  function sizeOf(m, Z) { return m / Z * state.focal * pxPerMm(); }
+
+  var LIGHTS = [];
+  (function seedLights() {
+    var seed = 7;
+    function rnd() { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; }
+    for (var i = 0; i < 46; i++) {
+      LIGHTS.push({
+        X: (rnd() - 0.5) * 46,
+        Y: 0.9 + rnd() * 9,
+        Z: 34 + rnd() * 34,
+        r: 0.09 + rnd() * 0.09,
+        hue: [42, 28, 196, 52, 14][Math.floor(rnd() * 5)],
+        a: 0.55 + rnd() * 0.45
+      });
+    }
+  })();
+
+  var hitRects = [];   // {id, x, y, w, h, d}
+
+  function blurPxFor(d) {
+    var c = coc(d, state.focusDist);          // mm
+    var dia = c * pxPerMm();                  // px
+    return Math.min(64, dia / 2);
+  }
+
+  function layerStart() {
+    bctx.setTransform(1, 0, 0, 1, 0, 0);
+    bctx.clearRect(0, 0, buf.width, buf.height);
+    bctx.setTransform(1, 0, 0, 1, PAD, PAD);
+  }
+  function layerCommit(d) {
+    var b = blurPxFor(d);
+    pctx.save();
+    pctx.filter = b > 0.35 ? "blur(" + b.toFixed(2) + "px)" : "none";
+    pctx.drawImage(buf, -PAD, -PAD);
+    pctx.restore();
+  }
+
+  function apertureShape(ctx, cx, cy, r) {
+    var N = fNumber();
+    if (N <= 2.0) { ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); return; }
+    var rot = -Math.PI / 2 + 0.3;
+    ctx.beginPath();
+    for (var i = 0; i < BLADES; i++) {
+      var a = rot + i * 2 * Math.PI / BLADES;
+      var x = cx + r * Math.cos(a), y = cy + r * Math.sin(a);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+  }
+
+  function drawPhoto() {
+    hitRects = [];
+    var lightHits = [];
+    pctx.setTransform(1, 0, 0, 1, 0, 0);
+    pctx.clearRect(0, 0, PW, PH);
+
+    /* --- 해질녘 하늘 --- */
+    var skyBottom = P(0, 0, 400).y + 12;
+    var sky = pctx.createLinearGradient(0, -PH * 0.15, 0, skyBottom);
+    sky.addColorStop(0, "#16204a");
+    sky.addColorStop(0.34, "#39355f");
+    sky.addColorStop(0.62, "#7d4f56");
+    sky.addColorStop(0.85, "#c07a52");
+    sky.addColorStop(1, "#e0a066");
+    pctx.fillStyle = sky;
+    pctx.fillRect(0, 0, PW, PH);
+
+    /* --- 먼 불빛 (보케) --- */
+    var cLight = coc(45, state.focusDist) * pxPerMm();
+    LIGHTS.forEach(function (L) {
+      var p = P(L.X, L.Y, L.Z);
+      if (p.x < -180 || p.x > PW + 180) return;
+      var base = sizeOf(L.r, L.Z);
+      var r = Math.max(base, cLight / 2);
+      pctx.save();
+      // 광원 주변 번짐(글로우)
+      var halo = pctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 3.4);
+      halo.addColorStop(0, "hsla(" + L.hue + ", 90%, 72%, " + (0.30 * L.a).toFixed(2) + ")");
+      halo.addColorStop(1, "hsla(" + L.hue + ", 90%, 72%, 0)");
+      pctx.fillStyle = halo;
+      pctx.fillRect(p.x - r * 3.4, p.y - r * 3.4, r * 6.8, r * 6.8);
+
+      pctx.globalAlpha = L.a * Math.min(1, (base * base * 7) / (r * r) + 0.18);
+      pctx.fillStyle = "hsl(" + L.hue + ", 88%, 74%)";
+      pctx.filter = "blur(" + Math.max(0.5, r * 0.14).toFixed(2) + "px)";
+      apertureShape(pctx, p.x, p.y, r);
+      pctx.fill();
+      // 보케 가장자리(양파링)
+      if (r > 6) {
+        pctx.globalAlpha = L.a * 0.4;
+        pctx.strokeStyle = "hsl(" + L.hue + ", 92%, 84%)";
+        pctx.lineWidth = Math.max(1, r * 0.12);
+        apertureShape(pctx, p.x, p.y, r * 0.93);
+        pctx.stroke();
+      }
+      pctx.restore();
+      var hr = Math.max(9, r);
+      lightHits.push({ id: "light", d: 45, x: p.x - hr, y: p.y - hr, w: hr * 2, h: hr * 2 });
+    });
+
+    /* --- 나무와 지면 (9m) --- */
+    layerStart();
+    var TZ = 9;
+    var horizon = P(0, 0, 400).y;
+    var gg = bctx.createLinearGradient(0, horizon - 30, 0, PH + PAD);
+    gg.addColorStop(0, "#241d28");
+    gg.addColorStop(1, "#100c14");
+    bctx.fillStyle = gg;
+    bctx.fillRect(-PAD, horizon - 30, PW + PAD * 2, PH + PAD * 2 - horizon + 30);
+
+    [-5.2, -2.9, 2.4, 4.6, 7.4, -8.1].forEach(function (X, i) {
+      var h = [2.9, 3.4, 2.6, 3.2, 2.8, 3.1][i];
+      var trunk = P(X, 0, TZ), top = P(X, h, TZ);
+      var wTrunk = sizeOf(0.16, TZ), crown = sizeOf(h * 0.34, TZ);
+      bctx.fillStyle = "#1c2130";
+      bctx.fillRect(trunk.x - wTrunk / 2, top.y, wTrunk, trunk.y - top.y);
+      bctx.fillStyle = "#222a3b";
+      [[0, 0.55, 0.74, 0.86], [-0.42, 1.02, 0.56, 0.6], [0.44, 0.96, 0.5, 0.58]].forEach(function (b) {
+        bctx.beginPath();
+        bctx.ellipse(top.x + crown * b[0], top.y + crown * b[1], crown * b[2], crown * b[3], 0, 0, Math.PI * 2);
+        bctx.fill();
+      });
+    });
+    // 가로등 불빛 한 점 (9m 층의 광원 — 심도가 얕으면 여기도 번진다)
+    var lampP = P(6.2, 3.6, TZ), lampR = sizeOf(0.12, TZ);
+    bctx.fillStyle = "rgba(255,214,150,0.95)";
+    bctx.beginPath(); bctx.arc(lampP.x, lampP.y, lampR, 0, Math.PI * 2); bctx.fill();
+    layerCommit(TZ);
+
+    /* --- 주 피사체: 카페 메뉴판 (2.5m) --- */
+    layerStart();
+    var CZ = 2.5;
+    var bx = -0.26, bw = 0.22, bTop = 1.42, bBot = 0.54;   // A형 입간판
+    var pTL = P(bx - bw, bTop, CZ), pBR = P(bx + bw, bBot, CZ);
+    var bW = pBR.x - pTL.x, bH = pBR.y - pTL.y;
+
+    // 다리
+    bctx.strokeStyle = "#6b4a30";
+    bctx.lineWidth = Math.max(3, bW * 0.055);
+    [[-0.6, -1.15], [0.6, 1.15]].forEach(function (o) {
+      var a = P(bx + bw * o[0], bBot + 0.02, CZ), b2 = P(bx + bw * o[1], 0.02, CZ);
+      bctx.beginPath(); bctx.moveTo(a.x, a.y); bctx.lineTo(b2.x, b2.y); bctx.stroke();
+    });
+    // 나무 프레임
+    bctx.fillStyle = "#7a5636";
+    bctx.fillRect(pTL.x, pTL.y, bW, bH);
+    // 칠판면 — 왼쪽 위 카페 조명을 받는 방향
+    var slate = bctx.createLinearGradient(pTL.x, pTL.y, pBR.x, pBR.y);
+    slate.addColorStop(0, "#454a44");
+    slate.addColorStop(0.55, "#2f3532");
+    slate.addColorStop(1, "#1d2220");
+    bctx.fillStyle = slate;
+    var inset = bW * 0.055;
+    bctx.fillRect(pTL.x + inset, pTL.y + inset, bW - inset * 2, bH - inset * 2);
+
+    // 분필 글씨 — 선명도를 눈으로 확인하는 텍스처
+    var tx0 = pTL.x + inset * 2.4, tw = bW - inset * 4.8;
+    var chalk = "#efe7d2";
+    bctx.fillStyle = chalk;
+    bctx.fillRect(tx0 + tw * 0.14, pTL.y + bH * 0.10, tw * 0.72, bH * 0.055);   // 제목
+    bctx.fillStyle = "rgba(239,231,210,0.55)";
+    bctx.fillRect(tx0 + tw * 0.22, pTL.y + bH * 0.185, tw * 0.56, bH * 0.012);  // 밑줄
+    var lines = [0.86, 0.62, 0.78, 0.54, 0.70, 0.48, 0.66];
+    lines.forEach(function (wRatio, i) {
+      var ly = pTL.y + bH * (0.27 + i * 0.088);
+      bctx.fillStyle = "rgba(239,231,210,0.92)";
+      bctx.fillRect(tx0, ly, tw * wRatio * 0.62, Math.max(1.5, bH * 0.021));
+      bctx.fillStyle = "rgba(255,205,120,0.9)";
+      bctx.fillRect(tx0 + tw * 0.80, ly, tw * 0.18, Math.max(1.5, bH * 0.021));  // 가격
+    });
+
+    // 옆 테이블 + 컵 + 화분
+    var TT = 0.75, tX = 0.34;
+    var topC = P(tX, TT, CZ), trx = sizeOf(0.19, CZ);
+    bctx.strokeStyle = "#3b3128";
+    bctx.lineWidth = Math.max(3, trx * 0.14);
+    var legB = P(tX, 0.02, CZ);
+    bctx.beginPath(); bctx.moveTo(topC.x, topC.y); bctx.lineTo(legB.x, legB.y); bctx.stroke();
+    bctx.fillStyle = "#8c6b4a";
+    bctx.beginPath(); bctx.ellipse(topC.x, topC.y, trx, trx * 0.24, 0, 0, Math.PI * 2); bctx.fill();
+    bctx.fillStyle = "#a4805a";
+    bctx.beginPath(); bctx.ellipse(topC.x, topC.y - trx * 0.05, trx * 0.97, trx * 0.22, 0, 0, Math.PI * 2); bctx.fill();
+
+    var cupB = P(tX - 0.06, TT + 0.01, CZ), cupT = P(tX - 0.06, TT + 0.095, CZ);
+    var cw = sizeOf(0.038, CZ);
+    bctx.fillStyle = "#f2eee4";
+    bctx.beginPath();
+    bctx.moveTo(cupB.x - cw * 0.8, cupB.y); bctx.lineTo(cupB.x + cw * 0.8, cupB.y);
+    bctx.lineTo(cupT.x + cw, cupT.y); bctx.lineTo(cupT.x - cw, cupT.y);
+    bctx.closePath(); bctx.fill();
+    bctx.fillStyle = "#4a2a1c";
+    bctx.beginPath(); bctx.ellipse(cupT.x, cupT.y, cw * 0.88, cw * 0.26, 0, 0, Math.PI * 2); bctx.fill();
+    bctx.strokeStyle = "rgba(255,255,255,0.3)";
+    bctx.lineWidth = Math.max(1.5, cw * 0.16);
+    bctx.beginPath();
+    bctx.moveTo(cupT.x, cupT.y - cw * 0.4);
+    bctx.bezierCurveTo(cupT.x - cw * 0.7, cupT.y - cw * 1.3, cupT.x + cw * 0.7, cupT.y - cw * 2.0, cupT.x - cw * 0.2, cupT.y - cw * 2.9);
+    bctx.stroke();
+
+    var potB = P(tX + 0.09, TT + 0.005, CZ), potT = P(tX + 0.09, TT + 0.07, CZ);
+    var pw = sizeOf(0.035, CZ);
+    bctx.fillStyle = "#9a6242";
+    bctx.beginPath();
+    bctx.moveTo(potB.x - pw * 0.7, potB.y); bctx.lineTo(potB.x + pw * 0.7, potB.y);
+    bctx.lineTo(potT.x + pw, potT.y); bctx.lineTo(potT.x - pw, potT.y);
+    bctx.closePath(); bctx.fill();
+    bctx.fillStyle = "#3f7a4a";
+    for (var lf = 0; lf < 5; lf++) {
+      bctx.save();
+      bctx.translate(potT.x, potT.y);
+      bctx.rotate((lf - 2) * 0.42);
+      bctx.beginPath();
+      bctx.ellipse(0, -pw * 1.5, pw * 0.34, pw * 1.5, 0, 0, Math.PI * 2);
+      bctx.fill();
+      bctx.restore();
+    }
+    layerCommit(CZ);
+    hitRects.unshift({ id: "cup", d: CZ, x: topC.x - trx * 1.3, y: cupT.y - cw * 3, w: trx * 2.6, h: (legB.y - cupT.y) });
+    hitRects.unshift({ id: "cup", d: CZ, x: pTL.x, y: pTL.y, w: bW, h: bH });
+
+    /* --- 앞쪽 잎 (0.7m) --- */
+    layerStart();
+    var LZ = 0.7;
+    // 전경 잎은 화면 가장자리에 고정 배치한다(초점거리를 바꿔도 프레이밍을 다시 잡은 셈).
+    // 크기와 흐림 정도는 0.7m 거리에서 계산한 값을 그대로 쓴다.
+    function leafPos(fx, fy) { return { x: fx * PW, y: fy * PH }; }
+    function leaf(fx, fy, len, rot, shade) {
+      var c = leafPos(fx, fy);
+      var L = Math.min(PH * 0.36, sizeOf(len, LZ));
+      bctx.save();
+      bctx.translate(c.x, c.y);
+      bctx.rotate(rot);
+      var lg = bctx.createLinearGradient(0, -L, 0, L);
+      lg.addColorStop(0, shade[0]); lg.addColorStop(1, shade[1]);
+      bctx.fillStyle = lg;
+      bctx.beginPath();
+      bctx.moveTo(0, -L);
+      bctx.quadraticCurveTo(L * 0.5, 0, 0, L);
+      bctx.quadraticCurveTo(-L * 0.5, 0, 0, -L);
+      bctx.fill();
+      bctx.strokeStyle = "rgba(0,0,0,0.3)";
+      bctx.lineWidth = Math.max(1, L * 0.035);
+      bctx.beginPath(); bctx.moveTo(0, -L * 0.88); bctx.lineTo(0, L * 0.88); bctx.stroke();
+      for (var v = -3; v <= 3; v++) {
+        bctx.beginPath();
+        bctx.moveTo(0, L * v * 0.2);
+        bctx.lineTo(L * 0.3 * (v % 2 ? 1 : -1), L * (v * 0.2 + 0.16));
+        bctx.stroke();
+      }
+      bctx.restore();
+    }
+    var LEAVES = [
+      [0.06, 1.00, 0.062, 0.55, ["#7cc98a", "#2c6b3d"]],
+      [0.21, 1.07, 0.054, -0.32, ["#69b878", "#245c33"]],
+      [0.80, 1.05, 0.058, -0.62, ["#72c184", "#28633a"]],
+      [0.95, 0.99, 0.050, 0.28, ["#61ae70", "#20522e"]]
+    ];
+    LEAVES.forEach(function (o) { leaf(o[0], o[1], o[2], o[3], o[4]); });
+    layerCommit(LZ);
+    LEAVES.forEach(function (o) {
+      var c = leafPos(o[0], o[1]);
+      var L = Math.min(PH * 0.36, sizeOf(o[2], LZ));
+      hitRects.unshift({ id: "leaf", d: LZ, x: c.x - L * 0.6, y: c.y - L, w: L * 1.2, h: L * 2 });
+    });
+
+    // 앞 → 뒤 순서로 히트 테스트 (마지막은 배경 전체)
+    hitRects = hitRects.concat(lightHits, [{ id: "tree", d: TZ, x: 0, y: 0, w: PW, h: PH }]);
+
+    /* --- 비네팅 --- */
+    var vg = pctx.createRadialGradient(PW / 2, PH / 2, PH * 0.3, PW / 2, PH / 2, PH * 0.85);
+    vg.addColorStop(0, "rgba(0,0,0,0)");
+    vg.addColorStop(1, "rgba(0,0,0,0.26)");
+    pctx.fillStyle = vg;
+    pctx.fillRect(0, 0, PW, PH);
+
+    /* --- 촬영 정보 오버레이 --- */
+    pctx.font = "600 13px ui-monospace, monospace";
+    pctx.fillStyle = "rgba(255,255,255,0.82)";
+    pctx.textAlign = "left";
+    pctx.fillText(state.focal + "mm  f/" + fNumber() + "  " + shutterText() + "  ISO 100", 14, PH - 14);
+  }
+
+  var SHUTTERS = [8000, 4000, 2000, 1000, 500, 250, 125, 60, 30, 15, 8, 4, 2];
+  function shutterText() {
+    // f/8 = 1/125초 기준 등가 노출을 실제 셔터 눈금에 맞춰 표기
+    var t = 125 * Math.pow(8 / fNumber(), 2);
+    var best = SHUTTERS[0], bestErr = Infinity;
+    SHUTTERS.forEach(function (s) {
+      var err = Math.abs(Math.log(s / t));
+      if (err < bestErr) { bestErr = err; best = s; }
+    });
+    return "1/" + best;
+  }
+
+  photo.addEventListener("click", function (e) {
+    var rect = photo.getBoundingClientRect();
+    var x = (e.clientX - rect.left) * (PW / rect.width);
+    var y = (e.clientY - rect.top) * (PH / rect.height);
+    for (var i = 0; i < hitRects.length; i++) {
+      var h = hitRects[i];
+      if (x >= h.x && x <= h.x + h.w && y >= h.y && y <= h.y + h.h) {
+        setFocus(h.d);
+        return;
+      }
+    }
+  });
+
+  /* ================= 수치 패널 ================= */
+  function fmtDist(d) {
+    if (d === Infinity) return "∞";
+    if (d >= 10) return d.toFixed(0) + "m";
+    if (d >= 1) return d.toFixed(2) + "m";
+    return Math.round(d * 100) + "cm";
+  }
+  function verdict(c) {
+    if (c <= COC_LIMIT) return ['<span class="verdict v-sharp">선명</span>', "sharp"];
+    if (c <= COC_LIMIT * 3) return ['<span class="verdict v-soft">약간 흐림</span>', "soft"];
+    return ['<span class="verdict v-blur">아웃포커싱</span>', "blur"];
+  }
+
+  function drawReadout() {
+    var body = document.getElementById("readoutBody");
+    var rows = SUBJECTS.map(function (s) {
+      var c = coc(s.d, state.focusDist);
+      var v = verdict(c);
+      var ratio = c / COC_LIMIT;
+      var col = c <= COC_LIMIT ? "var(--focus)" : "var(--blur)";
+      return '<tr>' +
+        '<td><span class="swatch" style="background:' + col + '"></span>' + s.label + '</td>' +
+        '<td class="num">' + fmtDist(s.d) + '</td>' +
+        '<td class="num">' + c.toFixed(3) + ' mm</td>' +
+        '<td class="num">' + (ratio < 0.05 ? "0.0×" : ratio.toFixed(1) + "×") + '</td>' +
+        '<td>' + v[0] + '</td>' +
+        '</tr>';
+    });
+    body.innerHTML = rows.join("");
+
+    var dof = dofRange();
+    var depth = dof.far === Infinity ? Infinity : dof.far - dof.near;
+    var isPan = dof.far === Infinity && dof.near <= SUBJECTS[0].d;
+    document.getElementById("stats").innerHTML =
+      stat("유효 구경", (state.focal / fNumber()).toFixed(1), "mm") +
+      stat("심도 시작", fmtDist(dof.near), "") +
+      stat("심도 끝", dof.far === Infinity ? "∞" : fmtDist(dof.far), "") +
+      stat("심도 폭", depth === Infinity ? "무한" : fmtDist(depth), "");
+
+    var note = "과초점거리 " + fmtDist(dof.H) + " · 이 거리에 초점을 두면 " + fmtDist(dof.H / 2) + "부터 무한대까지 선명";
+    document.getElementById("dofNote").innerHTML = note +
+      (isPan ? '<span class="panfocus-flag">팬 포커스</span>' : "");
+    document.getElementById("expoInfo").innerHTML =
+      "셔터 <code>" + shutterText() + "</code> · f/8 대비 빛 " +
+      (Math.pow(8 / fNumber(), 2) >= 1 ? "×" + Math.pow(8 / fNumber(), 2).toFixed(1) : "÷" + Math.pow(fNumber() / 8, 2).toFixed(1));
+  }
+  function stat(k, v, u) {
+    return '<div class="stat"><span class="k">' + k + '</span><span class="v">' + v +
+      (u ? ' <span class="u">' + u + "</span>" : "") + "</span></div>";
+  }
+
+  /* ================= 컨트롤 ================= */
+  var apSlider = document.getElementById("apSlider");
+  var fdSlider = document.getElementById("fdSlider");
+
+  document.getElementById("stopScale").innerHTML = STOPS.map(function (s, i) {
+    return '<span data-i="' + i + '">' + s + "</span>";
+  }).join("");
+  document.getElementById("stopScale").addEventListener("click", function (e) {
+    var i = e.target.getAttribute("data-i");
+    if (i !== null) { state.stop = +i; apSlider.value = i; render(); }
+  });
+
+  document.getElementById("flChips").innerHTML = FOCALS.map(function (o) {
+    return '<button class="chip" type="button" data-f="' + o.f + '">' + o.f + "mm</button>";
+  }).join("");
+  document.getElementById("flChips").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-f]");
+    if (b) { state.focal = +b.getAttribute("data-f"); render(); }
+  });
+
+  document.getElementById("targetChips").innerHTML = SUBJECTS.map(function (s) {
+    return '<button class="chip" type="button" data-d="' + s.d + '">' + s.label + "에 초점</button>";
+  }).join("");
+  document.getElementById("targetChips").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-d]");
+    if (b) setFocus(+b.getAttribute("data-d"));
+  });
+
+  function fdToSlider(d) {
+    return Math.round(1000 * Math.log(d / FD_MIN) / Math.log(FD_MAX / FD_MIN));
+  }
+  function sliderToFd(v) {
+    return FD_MIN * Math.pow(FD_MAX / FD_MIN, v / 1000);
+  }
+  function setFocus(d) {
+    state.focusDist = Math.min(FD_MAX, Math.max(FD_MIN, d));
+    fdSlider.value = fdToSlider(state.focusDist);
+    render();
+  }
+
+  apSlider.addEventListener("input", function () { state.stop = +apSlider.value; render(); });
+  fdSlider.addEventListener("input", function () {
+    state.focusDist = sliderToFd(+fdSlider.value); render();
+  });
+
+  document.querySelectorAll("button[data-preset]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var p = b.getAttribute("data-preset");
+      if (p === "portrait") { state.stop = 0; state.focal = 85; state.focusDist = 2.5; }
+      if (p === "pan") { state.stop = 7; state.focal = 24; state.focusDist = dofRangeFor(24, 16).H; }
+      if (p === "snap") { state.stop = 4; state.focal = 35; state.focusDist = 2.5; }
+      apSlider.value = state.stop;
+      fdSlider.value = fdToSlider(state.focusDist);
+      render();
+    });
+  });
+  function dofRangeFor(f, N) {
+    var H = (f * f / (N * COC_LIMIT) + f) / 1000;
+    return { H: Math.min(FD_MAX, H) };
+  }
+
+  /* ================= 렌더 ================= */
+  var queued = false;
+  function render() {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(function () {
+      queued = false;
+      refreshColors();
+
+      document.getElementById("fnumLabel").textContent = "f/" + fNumber();
+      document.getElementById("apInfo").textContent = "유효 구경 " + (state.focal / fNumber()).toFixed(1) + "mm";
+      var fo = FOCALS.filter(function (o) { return o.f === state.focal; })[0];
+      document.getElementById("flInfo").textContent = state.focal + "mm · " + (fo ? fo.name : "");
+      document.getElementById("fdInfo").textContent = fmtDist(state.focusDist);
+
+      document.querySelectorAll("#stopScale span").forEach(function (s, i) {
+        s.setAttribute("data-on", i === state.stop ? "1" : "0");
+      });
+      document.querySelectorAll("#flChips button").forEach(function (b) {
+        b.setAttribute("aria-pressed", +b.getAttribute("data-f") === state.focal ? "true" : "false");
+      });
+      document.querySelectorAll("#targetChips button").forEach(function (b) {
+        var d = +b.getAttribute("data-d");
+        b.setAttribute("aria-pressed", Math.abs(d - state.focusDist) / d < 0.02 ? "true" : "false");
+      });
+
+      drawIris();
+      drawRays();
+      drawCocInset();
+      drawRuler();
+      drawPhoto();
+      drawReadout();
+    });
+  }
+
+  setFocus(2.5);
+  render();
+
+  var mq = window.matchMedia("(prefers-color-scheme: dark)");
+  if (mq.addEventListener) mq.addEventListener("change", render);
+  new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+})();
+</script>
