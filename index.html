@@ -765,9 +765,11 @@
     var vRef = 1 / (1 / 135 - 1 / (state.focusDist * 1000));
     var s = IMG_W / vRef;
     var sensorX = LENS_X + s * vF;
-    var apR = Math.max(1.5, (f / N) / 2 * s);          // 조리개 반지름 (같은 배율)
-    var glassR = Math.max(apR + 5, (f / 1.4) / 2 * s); // 유리는 그대로, 구멍만 닫힌다
-    var sensorHalf = 12 * s;                            // 센서 24mm의 절반
+    var apR = Math.max(1.5, (f / N) / 2 * s);   // 조리개 반지름 (상거리와 같은 배율)
+    var sensorHalf = 12 * s;                    // 센서 24mm의 절반 — 초점거리와 무관하게 고정
+    // 유리는 그림 기호일 뿐이므로 초점거리를 바꿔도 크기가 흔들리면 안 된다.
+    // 구멍이 경통보다 커지는 극단(망원 + 최대개방)에서만 어쩔 수 없이 따라 커진다.
+    var glassR = Math.max(sensorHalf * 1.7, apR + 6);
 
     // 상거리 차이는 0.1mm 수준 → 그 "차이"만 확대한다. 기준 거리는 실제 비율 그대로.
     var maxDv = 0;
