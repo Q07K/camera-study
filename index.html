@@ -222,6 +222,32 @@
     background: var(--surface-2); border: 1px solid var(--line); border-radius: 3px; padding: 1px 5px;
   }
 
+  /* ---------- 3D 광선다발 ---------- */
+  .cone-controls {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    align-items: center; justify-content: space-between; margin-bottom: 12px;
+  }
+  #lightCone {
+    display: block; width: 100%; height: auto;
+    border-radius: 3px;
+    background: var(--surface-2);
+    border: 1px solid var(--line-soft);
+    cursor: grab;
+    touch-action: none;
+  }
+  #lightCone:active { cursor: grabbing; }
+  #lightCone:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .cone-caption {
+    margin: 12px 0 0; font-size: 14px; color: var(--muted);
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline;
+  }
+  .cone-caption b { color: var(--text); font-weight: 700; }
+  .cone-caption code {
+    font-family: var(--mono); font-size: 12px; color: var(--text);
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: 3px; padding: 1px 5px;
+  }
+
   /* ---------- readouts ---------- */
   .readout { width: 100%; border-collapse: collapse; font-size: 13px; color: var(--text); }
   .readout th, .readout td {
@@ -378,10 +404,27 @@
     </div>
   </section>
 
+  <!-- ============ 3D LIGHT CONE ============ -->
+  <section class="panel">
+    <div class="panel-head">
+      <h2 class="panel-title">3 · 조리개 모양이 그대로 보케가 되는 이유</h2>
+      <p class="panel-note">드래그해서 돌려 보세요 · 축 방향만 과장 (단면 크기 비는 실제 그대로)</p>
+    </div>
+    <div class="panel-body">
+      <div class="cone-controls">
+        <div class="chips" id="traceChips"></div>
+        <button class="chip" id="spinToggle" type="button" aria-pressed="true">자동 회전</button>
+      </div>
+      <canvas id="lightCone" width="1400" height="440"
+              aria-label="점광원에서 나온 빛다발이 조리개를 지나 센서에 다각형 단면으로 맺히는 3D 입체도"></canvas>
+      <p class="cone-caption" id="coneCaption"></p>
+    </div>
+  </section>
+
   <!-- ============ RULER + READOUT ============ -->
   <section class="panel">
     <div class="panel-head">
-      <h2 class="panel-title">3 · 선명하게 나오는 구간 (피사계 심도)</h2>
+      <h2 class="panel-title">4 · 선명하게 나오는 구간 (피사계 심도)</h2>
       <p class="panel-note" id="dofNote"></p>
     </div>
     <div class="panel-body">
@@ -480,13 +523,14 @@
         <h3>보케 (Bokeh)</h3>
         <p>배경의 점광원이 착란원 크기 그대로 퍼져 만들어지는 빛망울. 그래서 <strong>조리개 날개 모양</strong>이
            그대로 찍힙니다. 활짝 열면 동그랗고, 조이면 날개 수만큼 각진 다각형이 됩니다.
-           사진 속 먼 불빛을 F 값을 바꿔 가며 관찰해 보세요.</p>
+           위 <strong>3번 3D 뷰</strong>를 돌려 보면 빛다발이 왜 조리개 모양을 그대로 옮겨 오는지 한눈에 보입니다.</p>
 
         <h2 style="margin-top:26px">직접 확인해 볼 것</h2>
         <ul>
           <li><strong>f/1.4 → f/22</strong>로 조여 보기. 착란원 지름 숫자가 어떻게 줄고, 심도 밴드가 어떻게 넓어지는지.</li>
           <li><strong>초점을 앞 잎에</strong> 맞춰 보기. 주인공이던 메뉴판 글씨가 순식간에 읽을 수 없게 됩니다.</li>
           <li><strong>같은 f/4에서 24mm와 135mm</strong> 비교. 초점거리만 늘려도 심도는 급격히 얕아집니다.</li>
+          <li><strong>3D 뷰에서 초점 대상을 바꿔</strong> 보기. 수렴점이 센서 앞에 있느냐 뒤에 있느냐에 따라 단면이 뒤집힙니다.</li>
           <li><strong>조인 만큼 어두워진다</strong>는 대가. 사진 아래 셔터 속도 표시를 보세요. 팬 포커스는 흔들림·노이즈와의 거래입니다.</li>
         </ul>
       </div>
@@ -521,7 +565,7 @@
   var SENSOR_W = 36;         // mm
   var FD_MIN = 0.4, FD_MAX = 30;  // m
 
-  var state = { stop: 3, focal: 50, focusDist: 2.5 };
+  var state = { stop: 3, focal: 50, focusDist: 2.5, trace: "light" };
 
   var css = getComputedStyle(document.documentElement);
   function C(v) { return css.getPropertyValue(v).trim() || "#888"; }
@@ -761,6 +805,313 @@
     });
     parts.push(txt(896, 16, "점선 = 허용 착란원 0.03mm", C("--muted"), 10, "end", 500));
     cocEl.innerHTML = parts.join("");
+  }
+
+  /* ================= 3D 광선다발 =================
+     빛다발은 원뿔이고, 조리개 구멍이 그 원뿔의 단면 모양을 정한다.
+     센서가 원뿔의 꼭짓점을 비켜 자를수록 조리개 모양이 크게 남는다 = 보케.
+     월드 좌표: X = 광축(오른쪽), Y = 위, Z = 보는 사람 쪽. 단위는 0.1u = 1mm. */
+  var cone = document.getElementById("lightCone");
+  var g3 = cone.getContext("2d");
+  var CW = cone.width, CH = cone.height;
+  var U = 0.1;   // 1mm 당 월드 단위
+  var cam = { yaw: -0.62, pitch: 0.26, dist: 30, lens: 30 };
+  var spin = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var dragging = false, lastPt = null;
+
+  function rotate(p) {
+    var cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw);
+    var x1 = p.x * cy + p.z * sy;
+    var z1 = -p.x * sy + p.z * cy;
+    var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+    var y2 = p.y * cp - z1 * sp;
+    var z2 = p.y * sp + z1 * cp;
+    return { x: x1, y: y2, z: z2 + cam.dist };
+  }
+  function toScreen(p, fit, ox, oy) {
+    var r = rotate(p);
+    var k = cam.lens / Math.max(0.5, r.z);
+    return { x: ox + r.x * k * fit, y: oy - r.y * k * fit, z: r.z };
+  }
+
+  // 조리개 개구부의 3D 꼭짓점 (렌즈면 x=0 위의 다각형 또는 원)
+  function apertureRing(radius) {
+    var n = fNumber() <= 2.0 ? 40 : BLADES;
+    var rot = fNumber() <= 2.0 ? 0 : -Math.PI / 2 + 0.3;
+    var pts = [];
+    for (var i = 0; i < n; i++) {
+      var a = rot + i * 2 * Math.PI / n;
+      pts.push({ x: 0, y: radius * Math.sin(a), z: radius * Math.cos(a) });
+    }
+    return pts;
+  }
+  function circleRing(radius, n) {
+    var pts = [];
+    for (var i = 0; i < n; i++) {
+      var a = i * 2 * Math.PI / n;
+      pts.push({ x: 0, y: radius * Math.sin(a), z: radius * Math.cos(a) });
+    }
+    return pts;
+  }
+
+  function coneGeometry() {
+    var f = state.focal, N = fNumber();
+    var s = SUBJECTS.filter(function (t) { return t.id === state.trace; })[0] || SUBJECTS[3];
+    var vF = imageDist(state.focusDist), v = imageDist(s.d);
+
+    var xS = vF * U;                       // 센서 위치 (실제 상거리)
+    var rLens = (f / 1.4) * U / 2;         // 유리 반경은 고정, 조리개만 닫힌다
+    var rAp = Math.max(0.02, (f / N) * U / 2);
+
+    // 상거리 차이는 0.1mm 수준이라 그대로 그리면 아무것도 보이지 않는다.
+    // 단면 지름 / 조리개 지름 = |v - vF| / v 이므로, 이 비(q)만 일정 배로 키우면
+    // 축 방향은 과장되어도 피사체 사이의 크기 비와 조리개에 따른 크기 비는 그대로 유지된다.
+    var dv = v - vF;
+    var qMax = 0;
+    SUBJECTS.forEach(function (t) {
+      var vt = imageDist(t.d);
+      qMax = Math.max(qMax, Math.abs(vt - vF) / vt);
+    });
+    var ratio = qMax > 1e-9 ? (Math.abs(dv) / v) / qMax : 0;
+    var q = ratio < 1e-4 ? 0 : Math.min(0.68, 0.62 * (0.45 + 0.55 * ratio));
+    var xc = Math.abs(dv) < 1e-9 ? xS : (dv < 0 ? xS / (1 + q) : xS / (1 - q));
+
+    var src = { x: -xS * 1.05, y: 0.42 * Math.max(1, rLens), z: 0 };
+    var apex = { x: xc, y: -0.26 * Math.max(1, rLens), z: 0 };
+
+    var ring = apertureRing(rAp);
+    var spot = ring.map(function (V) {
+      var dx = apex.x - V.x;
+      if (Math.abs(dx) < 1e-9) return { x: xS, y: apex.y, z: apex.z };
+      var t = (xS - V.x) / dx;
+      return { x: xS, y: V.y + (apex.y - V.y) * t, z: V.z + (apex.z - V.z) * t };
+    });
+
+    return {
+      subject: s, src: src, apex: apex, ring: ring, spot: spot,
+      xS: xS, rLens: rLens, rAp: rAp,
+      crossed: xc < xS,                       // 센서 앞에서 모였다가 다시 퍼진 경우
+      focused: Math.abs(v - vF) / vF < 0.0005,
+      cocMm: coc(s.d, state.focusDist)
+    };
+  }
+
+  function draw3D() {
+    var G = coneGeometry();
+    // 센서면은 "상이 맺히는 평면"의 기준으로만 쓴다. 실제 36×24mm로 그리면
+    // 조리개와 단면이 상대적으로 너무 작아져 정작 보여 줄 것이 안 보인다.
+    var spotR = Math.max.apply(null, G.spot.map(function (p) {
+      return Math.sqrt(p.y * p.y + p.z * p.z);          // 광축에서 가장 먼 단면 꼭짓점
+    }));
+    var hy = Math.max(G.rLens * 0.8, spotR * 1.9);
+    var half = { y: hy, z: hy * 1.45 };
+    var corners = [
+      { x: G.xS, y: half.y, z: -half.z }, { x: G.xS, y: half.y, z: half.z },
+      { x: G.xS, y: -half.y, z: half.z }, { x: G.xS, y: -half.y, z: -half.z }
+    ];
+
+    // 화면에 꽉 차도록 배율을 매 프레임 다시 맞춘다 (초점거리에 따라 장면 크기가 크게 달라짐)
+    var probe = [G.src, G.apex].concat(corners, G.ring, G.spot,
+      circleRing(G.rLens, 12));
+    var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    probe.forEach(function (p) {
+      var q = toScreen(p, 1, 0, 0);
+      minX = Math.min(minX, q.x); maxX = Math.max(maxX, q.x);
+      minY = Math.min(minY, q.y); maxY = Math.max(maxY, q.y);
+    });
+    var fit = Math.min(CW * 0.88 / Math.max(1e-3, maxX - minX),
+                       CH * 0.78 / Math.max(1e-3, maxY - minY));
+    var ox = CW / 2 - (minX + maxX) / 2 * fit;
+    var oy = CH / 2 + (minY + maxY) / 2 * fit;
+    function S(p) { return toScreen(p, fit, ox, oy); }
+
+    g3.clearRect(0, 0, CW, CH);
+
+    var beam = C("--beam"), focusCol = C("--focus"), blurCol = C("--blur");
+    var spotCol = G.focused ? focusCol : blurCol;
+    var faces = [];
+    function face(pts, fill, stroke, lw) {
+      var pr = pts.map(S);
+      var z = 0;
+      pr.forEach(function (p) { z += p.z; });
+      faces.push({ z: z / pr.length, pts: pr, fill: fill, stroke: stroke, lw: lw || 1 });
+    }
+    // 1) 광원 → 조리개로 모여드는 빛다발
+    var n = G.ring.length;
+    for (var i = 0; i < n; i++) {
+      var a = G.ring[i], b = G.ring[(i + 1) % n];
+      face([G.src, a, b], hexa(beam, 0.07), null);
+      face([a, G.apex, b], hexa(beam, 0.13), null);          // 굴절 후 모여드는 원뿔
+      if (G.crossed) face([G.apex, G.spot[i], G.spot[(i + 1) % n]], hexa(spotCol, 0.22), null);
+    }
+
+    // 2) 센서면
+    face(corners, hexa(C("--focus"), 0.10), hexa(C("--focus"), 0.55), 2);
+
+    // 3) 렌즈 유리 + 조리개 날개 (개구부를 뚫은 원판)
+    var glass = circleRing(G.rLens, 48);
+    face(glass, hexa(beam, 0.10), hexa(beam, 0.45), 1.5);
+    (function () {
+      var outer = glass.map(S), inner = G.ring.map(S);
+      var z = 0; outer.forEach(function (p) { z += p.z; });
+      faces.push({
+        z: z / outer.length - 1e-4,   // 유리보다 살짝 앞 — 항상 유리 위에 그려지도록
+        custom: function () {
+          g3.beginPath();
+          outer.forEach(function (p, i) { i ? g3.lineTo(p.x, p.y) : g3.moveTo(p.x, p.y); });
+          g3.closePath();
+          for (var j = inner.length - 1; j >= 0; j--) {
+            var p = inner[j];
+            j === inner.length - 1 ? g3.moveTo(p.x, p.y) : g3.lineTo(p.x, p.y);
+          }
+          g3.closePath();
+          g3.fillStyle = hexa(C("--blade"), 0.6);
+          g3.fill("evenodd");
+          g3.strokeStyle = hexa(beam, 0.85);
+          g3.lineWidth = 2;
+          g3.beginPath();
+          inner.forEach(function (p, i) { i ? g3.lineTo(p.x, p.y) : g3.moveTo(p.x, p.y); });
+          g3.closePath();
+          g3.stroke();
+        }
+      });
+    })();
+
+    paintWithCustom();
+
+    // 4) 센서에 남은 단면 = 보케. 센서면과 같은 평면이라 깊이 정렬에 맡기지 않고 맨 위에 얹는다.
+    (function () {
+      var pr = G.spot.map(S);
+      g3.beginPath();
+      pr.forEach(function (p, i) { i ? g3.lineTo(p.x, p.y) : g3.moveTo(p.x, p.y); });
+      g3.closePath();
+      g3.fillStyle = hexa(spotCol, 0.62);
+      g3.fill();
+      g3.strokeStyle = spotCol;
+      g3.lineWidth = 2.5;
+      g3.stroke();
+    })();
+
+    function paintWithCustom() {
+      faces.sort(function (a, b) { return b.z - a.z; });
+      faces.forEach(function (F) {
+        if (F.custom) { F.custom(); return; }
+        g3.beginPath();
+        F.pts.forEach(function (p, i) { i ? g3.lineTo(p.x, p.y) : g3.moveTo(p.x, p.y); });
+        g3.closePath();
+        if (F.fill) { g3.fillStyle = F.fill; g3.fill(); }
+        if (F.stroke) { g3.strokeStyle = F.stroke; g3.lineWidth = F.lw; g3.stroke(); }
+      });
+    }
+
+    // 5) 광선 (모서리를 따라가는 대표 광선)
+    g3.lineWidth = 1;
+    for (var k = 0; k < n; k += (n > 12 ? 5 : 1)) {
+      var V = S(G.ring[k]), Sp = S(G.src), Wp = S(G.spot[k]);
+      g3.strokeStyle = hexa(beam, 0.5);
+      g3.beginPath(); g3.moveTo(Sp.x, Sp.y); g3.lineTo(V.x, V.y); g3.stroke();
+      g3.strokeStyle = hexa(spotCol, 0.65);
+      g3.beginPath(); g3.moveTo(V.x, V.y); g3.lineTo(Wp.x, Wp.y); g3.stroke();
+    }
+
+    // 6) 광원과 수렴점
+    var sp = S(G.src);
+    var glow = g3.createRadialGradient(sp.x, sp.y, 0, sp.x, sp.y, 26);
+    glow.addColorStop(0, hexa(beam, 0.95));
+    glow.addColorStop(1, hexa(beam, 0));
+    g3.fillStyle = glow;
+    g3.fillRect(sp.x - 26, sp.y - 26, 52, 52);
+    g3.fillStyle = beam;
+    g3.beginPath(); g3.arc(sp.x, sp.y, 4, 0, Math.PI * 2); g3.fill();
+
+    var ap = S(G.apex);
+    g3.fillStyle = spotCol;
+    g3.beginPath(); g3.arc(ap.x, ap.y, 3.5, 0, Math.PI * 2); g3.fill();
+
+    // 7) 라벨 — 광선다발 위에 겹쳐도 읽히도록 배경 칩을 깐다
+    g3.font = "600 17px ui-monospace, monospace";
+    function tag(text, x, y, color, align) {
+      g3.textAlign = "left";
+      var w = g3.measureText(text).width, padX = 7, padY = 5, h = 17;
+      var left = align === "right" ? x - w : (align === "center" ? x - w / 2 : x);
+      g3.fillStyle = hexa(C("--surface"), 0.82);
+      g3.beginPath();
+      var rx = left - padX, ry = y - h + 1 - padY, rw = w + padX * 2, rh = h + padY * 2;
+      if (g3.roundRect) g3.roundRect(rx, ry, rw, rh, 4); else g3.rect(rx, ry, rw, rh);
+      g3.fill();
+      g3.fillStyle = color;
+      g3.fillText(text, left, y);
+    }
+    tag(G.subject.label + "의 한 점", sp.x, sp.y - 22, C("--muted"), "center");
+    tag(G.focused ? "센서 위에서 한 점" : (G.crossed ? "센서 앞에서 모임" : "센서 뒤에서 모임"),
+      ap.x - 14, ap.y - 12, spotCol, "right");
+    var sc = S({ x: G.xS, y: -half.y, z: 0 });
+    tag("센서면", sc.x, sc.y + 30, C("--focus"), "center");
+
+    updateConeCaption(G);
+  }
+
+  function hexa(hex, alpha) {
+    var h = hex.replace("#", "");
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    var num = parseInt(h, 16);
+    return "rgba(" + ((num >> 16) & 255) + "," + ((num >> 8) & 255) + "," + (num & 255) + "," + alpha + ")";
+  }
+
+  function updateConeCaption(G) {
+    var el = document.getElementById("coneCaption");
+    var shape = fNumber() <= 2.0 ? "동그란" : BLADES + "각형";
+    var msg;
+    if (G.focused) {
+      msg = "<b>초점이 맞았습니다.</b> 빛다발이 센서 위에서 정확히 한 점으로 모이므로 조리개 모양이 남지 않습니다. " +
+        "조리개를 열어 원뿔을 굵게 만들어도 꼭짓점은 그대로 센서 위입니다.";
+    } else if (G.crossed) {
+      msg = "<b>센서보다 먼 점</b>이라 빛다발이 센서 <b>앞에서</b> 모였다가 다시 퍼집니다. " +
+        "센서는 퍼지는 쪽을 자르므로 " + shape + " 단면이 <b>180° 뒤집힌 채</b> 기록됩니다. 이것이 보케입니다.";
+    } else {
+      msg = "<b>센서보다 가까운 점</b>이라 빛다발이 센서 <b>뒤에서</b> 모입니다. " +
+        "센서는 아직 좁아지는 중인 원뿔을 자르므로 " + shape + " 단면이 <b>그대로</b> 기록됩니다.";
+    }
+    el.innerHTML = msg + ' <code>단면 지름 ' + G.cocMm.toFixed(3) + "mm</code>";
+  }
+
+  /* --- 궤도 조작 --- */
+  cone.addEventListener("pointerdown", function (e) {
+    dragging = true; lastPt = { x: e.clientX, y: e.clientY };
+    cone.setPointerCapture(e.pointerId);
+    if (spin) {            // 직접 돌리기 시작하면 각도를 사용자에게 넘긴다
+      spin = false;
+      spinBtn.setAttribute("aria-pressed", "false");
+    }
+  });
+  cone.addEventListener("pointermove", function (e) {
+    if (!dragging) return;
+    cam.yaw += (e.clientX - lastPt.x) * 0.008;
+    cam.pitch = Math.max(-1.2, Math.min(1.2, cam.pitch + (e.clientY - lastPt.y) * 0.006));
+    lastPt = { x: e.clientX, y: e.clientY };
+    draw3D();
+  });
+  ["pointerup", "pointercancel"].forEach(function (ev) {
+    cone.addEventListener(ev, function () { dragging = false; });
+  });
+
+  var spinBtn = document.getElementById("spinToggle");
+  spinBtn.addEventListener("click", function () {
+    spin = !spin;
+    spinBtn.setAttribute("aria-pressed", spin ? "true" : "false");
+    if (spin) requestAnimationFrame(spinLoop);
+  });
+  // 한 바퀴 돌리면 광축과 정면으로 만나는 각도에서 입체가 납작해진다.
+  // 잘 읽히는 각도 주변을 완만히 오가게 한다.
+  var YAW_BASE = -0.62, phase = 0;
+  function spinLoop() {
+    if (!spin) return;
+    if (!dragging) {
+      phase += 0.005;
+      cam.yaw = YAW_BASE + 0.5 * Math.sin(phase);
+      draw3D();
+    }
+    requestAnimationFrame(spinLoop);
   }
 
   /* ================= 거리 눈금자 ================= */
@@ -1219,6 +1570,14 @@
     if (b) setFocus(+b.getAttribute("data-d"));
   });
 
+  document.getElementById("traceChips").innerHTML = SUBJECTS.map(function (s) {
+    return '<button class="chip" type="button" data-trace="' + s.id + '">' + s.label + "의 빛</button>";
+  }).join("");
+  document.getElementById("traceChips").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-trace]");
+    if (b) { state.trace = b.getAttribute("data-trace"); render(); }
+  });
+
   function fdToSlider(d) {
     return Math.round(1000 * Math.log(d / FD_MIN) / Math.log(FD_MAX / FD_MIN));
   }
@@ -1277,10 +1636,14 @@
         var d = +b.getAttribute("data-d");
         b.setAttribute("aria-pressed", Math.abs(d - state.focusDist) / d < 0.02 ? "true" : "false");
       });
+      document.querySelectorAll("#traceChips button").forEach(function (b) {
+        b.setAttribute("aria-pressed", b.getAttribute("data-trace") === state.trace ? "true" : "false");
+      });
 
       drawIris();
       drawRays();
       drawCocInset();
+      draw3D();
       drawRuler();
       drawPhoto();
       drawReadout();
@@ -1289,6 +1652,8 @@
 
   setFocus(2.5);
   render();
+  spinBtn.setAttribute("aria-pressed", spin ? "true" : "false");
+  if (spin) requestAnimationFrame(spinLoop);
 
   var mq = window.matchMedia("(prefers-color-scheme: dark)");
   if (mq.addEventListener) mq.addEventListener("change", render);
