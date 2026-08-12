@@ -733,11 +733,15 @@
      조리개 지름에도 같은 배율을 쓰므로, F값이 같으면 초점거리가 달라도 원뿔 각도가 같다
      (= 왜 F값이 밝기의 기준인지). 피사체별 상거리 "차이"만 따로 확대한다. */
   var rayEl = document.getElementById("rayDiagram");
-  var LENS_X = 380, AXIS_Y = 210, IMG_W = 420;
+  var LENS_X = 300, AXIS_Y = 210, IMG_W = 520;
+
+  // 화면 배율은 어떤 조작에도 흔들리면 안 되는 상수다.
+  // 가장 긴 렌즈(135mm)를 가장 가까이(FD_MIN) 맞췄을 때의 상거리가 상 쪽 폭에 딱 들어가도록 한 번만 정한다.
+  var S_PX = IMG_W / (1 / (1 / 135 - 1 / (FD_MIN * 1000)));
 
   function objX(d) {  // 로그 거리 → x 좌표
     var t = Math.log(Math.min(60, Math.max(0.4, d)) / 0.4) / Math.log(60 / 0.4);
-    return 335 - 307 * t;
+    return 258 - 205 * t;   // 왼쪽 끝 라벨이 잘리지 않도록 여백을 남긴다
   }
   function tri(x, y, dir, col) {   // 화살촉 (dir: -1 위, +1 아래)
     return '<polygon points="' + x + ',' + y + ' ' + (x - 5) + ',' + (y + dir * 10) +
@@ -761,9 +765,8 @@
     var f = state.focal, N = fNumber();
     var vF = imageDist(state.focusDist);
 
-    // 135mm일 때 상 쪽 폭을 다 쓰도록 배율 고정 → 초점거리를 바꾸면 센서가 눈에 띄게 움직인다
-    var vRef = 1 / (1 / 135 - 1 / (state.focusDist * 1000));
-    var s = IMG_W / vRef;
+    // 배율은 고정 상수. 조작에 따라 움직이는 것은 센서 "위치"와 구멍 크기뿐이다.
+    var s = S_PX;
     var sensorX = LENS_X + s * vF;
     var apR = Math.max(1.5, (f / N) / 2 * s);   // 조리개 반지름 (상거리와 같은 배율)
     var sensorHalf = 12 * s;                    // 센서 24mm의 절반 — 초점거리와 무관하게 고정
